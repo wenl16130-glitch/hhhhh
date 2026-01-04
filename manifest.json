@@ -1,0 +1,20 @@
+{
+  "name": "Miu Phone",
+  "short_name": "Miu Phone",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#f5f5f5",
+  "icons": [
+    {
+      "src": "在此处填入你的192x192图标链接.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "在此处填入你的512x512图标链接.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
