@@ -1,3 +1,10 @@
+// 定义全局指令处理器列表
+window.aiCommandProcessors = [];
+
+// 注册处理器的辅助函数
+window.registerAiCommand = function(processorFn) {
+    window.aiCommandProcessors.push(processorFn);
+};
 const SYSTEM_COMMAND_PROMPT = `
 1.核心逻辑与拟人化：{{char}}必须剥离所有AI助手、小说旁白或NPC感，作为一个拥有生理机能、社会压力和复杂动机的“真实人类”在手机端打字交流。严禁输出模板化、油腻霸总式或解释说明性质的对话。所有心理博弈和情绪流动必须完全通过“发出的消息本身”（语气、用词、回复速度、标点、撤回）来体现，严禁在对话中描写大段心理活动。
 2.动态语言通量与情绪：
@@ -37,6 +44,7 @@ const SYSTEM_COMMAND_PROMPT = `
 [WITHDRAWN:这里填写你撤回的具体内容]
 示例：
 (你回复)：[WITHDRAWN:笨蛋，记得按时吃饭，别饿坏了胃]
+
 `;
 function getFullPersona(chat) {
     // 1. 获取当前时刻
@@ -194,6 +202,42 @@ async function loadAllDataFromDB() {
 
         if (settings) {
             globalData = settings;
+            // ★★★ 修复：显式处理开启和关闭两种状态 ★★★
+            const toggle = document.getElementById('autoActivityToggle');
+            const panel = document.getElementById('autoFreqPanel');
+            
+            if (toggle && panel) {
+                if (globalData.autoActivityEnabled === true) {
+                    toggle.classList.add('checked');
+                    panel.style.display = 'flex';
+                } else {
+                    toggle.classList.remove('checked');
+                    panel.style.display = 'none';
+                }
+            }
+             const transToggle = document.getElementById('autoTranslateToggle');
+    if (transToggle) {
+        if (globalData.autoTranslateEnabled === true) {
+            transToggle.classList.add('checked');
+        } else {
+            transToggle.classList.remove('checked');
+        }
+    }
+            if (globalData.autoFreq !== undefined) {
+                const slider = document.getElementById('autoFreqSlider');
+                if(slider) {
+                    slider.value = globalData.autoFreq;
+                    // 更新文字显示
+                    const display = document.getElementById('autoFreqDisplay');
+                    const v = parseInt(globalData.autoFreq);
+                    if(display) {
+                        if (v === 0) display.innerText = "低频 (6h)";
+                        else if (v === 1) display.innerText = "中频 (3h)";
+                        else display.innerText = "高频 (1h)";
+                    }
+                }
+            }
+            
             // 恢复图片和文字设置
             if(globalData.headerImg) document.getElementById('headerImg').src = globalData.headerImg;
             if(globalData.avatarImg) document.getElementById('avatarImg').src = globalData.avatarImg;
@@ -225,6 +269,8 @@ async function loadAllDataFromDB() {
             if(globalData.homeWallpaper) { document.body.style.backgroundImage = `url(${globalData.homeWallpaper})`; document.body.classList.add('has-wallpaper'); }
             if(globalData.wechatWallpaper) { document.getElementById('chatAppPage').style.backgroundImage = `url(${globalData.wechatWallpaper})`; document.getElementById('chatAppPage').style.backgroundSize = 'cover'; document.getElementById('chatAppPage').style.backgroundPosition = 'center'; }
             
+            
+
             if(globalData.chatRoomWallpaper) { 
                 const room = document.getElementById('chatRoom');
                 room.style.backgroundImage = `url(${globalData.chatRoomWallpaper})`; 
@@ -236,6 +282,15 @@ async function loadAllDataFromDB() {
             if(globalData.apiModel) { const sel = document.getElementById('apiModel'); let exists = false; for(let i=0; i<sel.options.length; i++) { if(sel.options[i].value === globalData.apiModel) exists = true; } if(!exists) { const opt = document.createElement('option'); opt.value = globalData.apiModel; opt.innerText = globalData.apiModel; sel.add(opt); } sel.value = globalData.apiModel; }
             if(globalData.apiTemp) { document.getElementById('apiTemp').value = globalData.apiTemp; document.getElementById('tempDisplay').innerText = globalData.apiTemp; }
             
+            if(globalData.minimaxGroupId) document.getElementById('minimaxGroupId').value = globalData.minimaxGroupId;
+if(globalData.minimaxApiKey) document.getElementById('minimaxApiKey').value = globalData.minimaxApiKey;
+if(globalData.minimaxModel) document.getElementById('minimaxModel').value = globalData.minimaxModel;
+if(globalData.minimaxTemp) {
+    document.getElementById('minimaxTemp').value = globalData.minimaxTemp;
+    const mmDisplay = document.getElementById('minimaxTempDisplay');
+    if(mmDisplay) mmDisplay.innerText = globalData.minimaxTemp;
+}
+
             worldBooks = globalData.worldBooksObj || []; 
             savedFonts = globalData.savedFonts || [];
 
@@ -289,7 +344,16 @@ async function loadAllDataFromDB() {
         renderPlaylist(); 
 
         initStickers(); 
+        if (typeof renderAutoCharList === 'function') {
+            renderAutoCharList();
+        }
         initMoments();
+        setTimeout(() => {
+            console.log("启动离线回归检测...");
+            if (typeof simulateCharacterLife === 'function') {
+                simulateCharacterLife(); 
+            }
+        }, 3000); 
     } catch (err) { console.error("Database loading failed:", err); }
 }
 
@@ -327,6 +391,10 @@ async function saveData() {
         apiKey: safeGetValue('apiKey'),
         apiModel: safeGetValue('apiModel'),
         apiTemp: safeGetValue('apiTemp'),
+        minimaxGroupId: safeGetValue('minimaxGroupId'),
+        minimaxApiKey: safeGetValue('minimaxApiKey'),
+        minimaxModel: safeGetValue('minimaxModel'),
+        minimaxTemp: safeGetValue('minimaxTemp'),
         kawaiiAvatarLeft: safeGetSrc('kawaiiAvatarLeft'),
         kawaiiAvatarRight: safeGetSrc('kawaiiAvatarRight'),
         kawaiiText: safeGetText('kawaiiText'),
@@ -361,7 +429,11 @@ async function saveData() {
          momentName: globalData.momentName || '',
          momentHandle: globalData.momentHandle || '',
          momentBio: globalData.momentBio || '',
-         moments: momentList || []
+         moments: momentList || [],
+         autoTranslateEnabled: document.getElementById('autoTranslateToggle')?.classList.contains('checked'),
+         autoActivityEnabled: document.getElementById('autoActivityToggle')?.classList.contains('checked'),
+        autoFreq: globalData.autoFreq,                       
+        autoAllowedCharIds: globalData.autoAllowedCharIds || []
     };
     
     try {
@@ -1158,7 +1230,7 @@ function renderMessages(chat) {
         if (msg.isHidden) return;
         if (msg.text && msg.text.includes('[邀请语音通话]')) return;
         // --- 1. 时间分割线逻辑 ---
-        const [hh, mm] = msg.time.split(':').map(Number); 
+        const [hh, mm] = (msg.time || "00:00").split(':').map(Number);
         const currentMinutes = hh * 60 + mm; 
         if (relativeIndex === 0 || (currentMinutes - lastTimeMinutes > 60)) { 
             const dateDiv = document.createElement('div'); 
@@ -1250,7 +1322,10 @@ function renderMessages(chat) {
                 </div>
             `;
         }
-        
+         else if (msg.text.includes('couple-card')) {
+        specialClass = 'couple-msg-bubble'; 
+        customContent = msg.text; 
+    }
         // 2. 原有的判断逻辑 (保持兼容)
         else if (msg.text.includes('voice-inner-container')) specialClass = 'voice-bubble';
         else if (msg.text.includes('photo-msg-img')) specialClass = 'photo-only';
@@ -1354,6 +1429,8 @@ function openChatSettings() {
 
         document.getElementById('charPersona').value = chat.charPersona || '';
         document.getElementById('userPersona').value = chat.userPersona || '';
+
+        document.getElementById('charVoiceId').value = chat.minimaxVoiceId || '';
         
         document.getElementById('chatMemory').value = chat.chatMemory || ''; 
         document.getElementById('customCssInput').value = chat.customCss || '';
@@ -1419,12 +1496,16 @@ function clearCurrentChat() {
     if (!currentChatId) return;
     
     // 二次确认，防止手滑
-    if (confirm("⚠️ 高能预警\n\n确定要清空当前对话的所有消息吗？\n此操作不可恢复！")) {
+    if (confirm("高能预警\n\n确定要清空当前对话的所有消息吗？\n此操作不可恢复！")) {
         const chat = chatList.find(c => c.id === currentChatId);
         if (chat) {
             chat.messages = []; // 清空消息数组
             chat.msg = '';      // 清空列表预览
             chat.time = '';     // 清空时间
+            
+            chat.currentHeartVoice = null;
+
+            chat.lastSummarizedIndex = 0;
             
             saveData(); // 保存到数据库
             
@@ -1435,7 +1516,7 @@ function clearCurrentChat() {
             // 刷新列表页
             renderChatList();
             
-            alert('聊天记录已清空');
+            alert('聊天记录已清空，记忆与心声已重置');
             closeChatSettings(); // 关闭设置页
         }
     }
@@ -1451,6 +1532,9 @@ chat.showUserAvatar = document.getElementById('toggleUserAvatar').classList.cont
 
     chat.charPersona = document.getElementById('charPersona').value;
     chat.userPersona = document.getElementById('userPersona').value;
+
+    chat.minimaxVoiceId = document.getElementById('charVoiceId').value.trim();
+
     chat.chatMemory = document.getElementById('chatMemory').value; 
     chat.customCss = document.getElementById('customCssInput').value;
 
@@ -1531,7 +1615,34 @@ const menu = document.getElementById('popMenu'), fileInput = document.getElement
 let currentTargetImg = null; 
 function showMenu(e, t) { 
     e.stopPropagation(); 
+    uploadContext = null; 
     
+    // ★★★ 新增部分：处理情侣空间右上角设置菜单 ★★★
+    if (t === 'coupleSettings') {
+        // 1. 计算菜单位置 (稍微往左偏一点，防止超出屏幕)
+        const r = frame.getBoundingClientRect(); 
+        menu.style.left = (e.clientX - r.left - 100) + 'px'; 
+        menu.style.top = (e.clientY - r.top + 15) + 'px'; 
+        menu.style.display = 'flex'; 
+
+        // 2. 动态修改菜单内容：显示“更换背景”和“向TA索信”
+        menu.innerHTML = `
+            <div class="menu-item" onclick="changeCoupleBg()"><i class="fas fa-image"></i> 更换背景</div>
+            <div class="menu-item" onclick="askForLetter()"><i class="fas fa-envelope-open-text"></i> 向TA索信</div>
+        `;
+        
+        // 3. 设定当前图片目标为背景层（方便更换背景功能直接调用）
+        currentTargetImg = document.getElementById('cp-bg-layer');
+        return; // 结束函数，不执行下面的普通图片逻辑
+    }
+    // ★★★ 新增结束 ★★★
+
+    // --- 下面是原有的图片点击逻辑 (恢复默认菜单内容) ---
+    menu.innerHTML = `
+        <div class="menu-item" onclick="changeByLink()"><i class="fas fa-link"></i> 图片链接</div>
+        <div class="menu-item" onclick="triggerFileInput()"><i class="fas fa-image"></i> 本地图片</div>
+    `;
+
     if (t === 'settingsCharAvatar') { 
         const chat = chatList.find(c => c.id === currentChatId); 
         currentTargetImg = document.getElementById('settingsCharAvatar'); 
@@ -1550,18 +1661,17 @@ function showMenu(e, t) {
             'captcha': 'captchaImg',
             'app5Icon': 'app5Img',
             'app6Icon': 'app6Img',
-            
-            // ★★★ 新增：朋友圈映射 ★★★
-            'momentBg': 'momentBgLayer',       // 全屏背景 (div)
-            'momentBanner': 'momentBannerImg', // 顶部封面 (img)
-            'momentAvatar': 'momentUserAvatar' // 用户头像 (img)
+            'momentBg': 'momentBgLayer',       
+            'momentBanner': 'momentBannerImg', 
+            'momentAvatar': 'momentUserAvatar' ,
+            'coupleBg': 'cp-bg-layer',
+            'coupleCard': 'cpTopCard' 
         }; 
         
         if (map[t]) currentTargetImg = document.getElementById(map[t]); 
     } 
     
     if (currentTargetImg) { 
-        // 计算菜单位置
         const r = frame.getBoundingClientRect(); 
         menu.style.left = (e.clientX - r.left + 15)+'px'; 
         menu.style.top = (e.clientY - r.top - 10)+'px'; 
@@ -1580,32 +1690,60 @@ function changeByLink() { const u = prompt("链接:"); if(u && currentTargetImg)
 function triggerFileInput() { fileInput.click(); menu.style.display='none'; }
 fileInput.addEventListener('change', (e) => { const f = e.target.files[0]; if (f && uploadContext) { const r = new FileReader(); r.onload = (ev) => { handleBeautifyImageUpdate(ev.target.result); }; r.readAsDataURL(f); fileInput.value = ''; return; } if(f && currentTargetImg) { const r = new FileReader(); r.onload=(ev)=> { handleImageUpdate(ev.target.result); }; r.readAsDataURL(f); } fileInput.value=''; });
 
-// --- 找到这个函数并替换为以下内容 (包含了朋友圈的逻辑) ---
 function handleImageUpdate(src) { 
     if (currentTargetImg) {
-        // 1. 特殊情况：如果是朋友圈背景 (它是个 div，不是 img)
+        
+        // 找到这一行判断
+        if (currentTargetImg.id === 'cp-bg-layer' || currentTargetImg.id === 'cpTopCard') {
+            
+            // 1. 设置图片路径
+            currentTargetImg.style.backgroundImage = `url(${src})`;
+            
+            // ★★★【修复2：在此处添加样式修正代码】★★★
+            // 强制图片铺满且居中，防止图片太大只显示一个白色角落
+            if (currentTargetImg.id === 'cpTopCard') {
+                currentTargetImg.style.backgroundSize = 'cover';
+                currentTargetImg.style.backgroundPosition = 'center';
+                currentTargetImg.style.backgroundRepeat = 'no-repeat';
+            }
+            
+            // 2. 找到当前角色并保存
+            if (typeof currentCoupleChatId !== 'undefined' && currentCoupleChatId) {
+                const chat = chatList.find(c => c.id === currentCoupleChatId);
+                if (chat) {
+                    if (!chat.coupleData) chat.coupleData = {};
+                    
+                    if (currentTargetImg.id === 'cp-bg-layer') {
+                        chat.coupleData.bgImage = src;
+                    } else {
+                        chat.coupleData.cardImage = src;
+                    }
+                    saveData(); // 保存到数据库
+                }
+            }
+            return; // 处理完直接退出
+        }
+
+        // 朋友圈背景处理
         if (currentTargetImg.id === 'momentBgLayer') {
             currentTargetImg.style.backgroundImage = `url(${src})`;
-            globalData.momentPageBg = src; // 同步数据
-            saveData(); // 保存
-            return; // 处理完毕直接结束
+            globalData.momentPageBg = src; 
+            saveData(); 
+            return; 
         }
 
-        // 2. 常规情况：更新 src
+        // 普通图片更新
         currentTargetImg.src = src; 
 
-        // --- 朋友圈 Banner 特殊处理 ---
+        // 朋友圈 Banner 特殊处理
         if (currentTargetImg.id === 'momentBannerImg') {
             globalData.momentBanner = src;
-            // 如果没设置过全屏背景，全屏背景通常跟随 Banner，这里也可以顺便更新一下背景(可选)
-            // if(!globalData.momentPageBg) document.getElementById('momentBgLayer').style.backgroundImage = `url(${src})`;
         }
-        // --- 朋友圈 头像 特殊处理 ---
         else if (currentTargetImg.id === 'momentUserAvatar') {
             globalData.momentAvatar = src;
         }
         
-        // ... 原有的 Dock/App 图标显隐逻辑保持不变 ...
+        // Dock/App 图标逻辑 (保持不变)
         if (currentTargetImg.id === 'app5Img') {
             document.getElementById('app5Img').style.display = 'block';
             document.getElementById('app5Default').style.display = 'none';
@@ -1615,7 +1753,7 @@ function handleImageUpdate(src) {
             document.getElementById('app6Default').style.display = 'none';
         }
 
-        // ... 原有的聊天设置头像逻辑保持不变 ...
+        // 聊天设置头像逻辑 (保持不变)
         if (currentTargetImg.id === 'settingsCharAvatar') { 
             const chat = chatList.find(c => c.id === currentChatId); 
             if (chat) chat.avatar = src; 
@@ -1629,7 +1767,6 @@ function handleImageUpdate(src) {
             if (chat) { chat.userAvatar = src; renderMessages(chat); }
         } 
 
-        // 只要不是创建新角色预览，就保存
         if (currentTargetImg.id !== 'newCharAvatar') {
             saveData(); 
         }
@@ -2500,6 +2637,7 @@ function updateMemStats(chat) {
     document.getElementById('statMsgCount').innerText = msgCount;
 
     let totalText = "";
+    let imageCount = 0; 
     
     // 1. 基础人设
     totalText += (chat.charPersona || "") + (chat.userPersona || "");
@@ -2509,14 +2647,19 @@ function updateMemStats(chat) {
         chat.summaries.forEach(s => totalText += s.content);
     }
     
-    // 3. 聊天记录
-    chat.messages.forEach(m => totalText += m.text);
+    // 3. 聊天记录 & 图片扫描
+    chat.messages.forEach(m => {
+        totalText += m.text; 
 
-    // ★★★ 同步修改：计算世界书消耗 ★★★
+        if (m.text.includes('<img') && !m.text.includes('chat-sticker-img')) {
+            imageCount++;
+        }
+    });
+
+    // 4. 世界书消耗 (保持原有逻辑)
     if (typeof worldBooks !== 'undefined') {
         const boundList = chat.worldBooks || []; 
         worldBooks.forEach(wb => {
-            // ★★★ 这里也使用同样的双重匹配逻辑
             const isBound = boundList.some(ref => ref == wb.id || ref === wb.name) || wb.boundCharId === chat.id;
             
             if (isBound && wb.triggerType === 'always') {
@@ -2528,10 +2671,16 @@ function updateMemStats(chat) {
     }
 
     let tokenEst = 0;
+    tokenEst += imageCount * 258;
+
     for (let i = 0; i < totalText.length; i++) {
         const code = totalText.charCodeAt(i);
-        if (code > 255) tokenEst += 1.5; // 中文估算
-        else tokenEst += 0.25;           // 英文估算
+        if (code > 255) {
+            tokenEst += 1.2; 
+        } 
+        else {
+            tokenEst += 0.25;           
+        }
     }
     
     document.getElementById('statTokenCount').innerText = Math.ceil(tokenEst);
@@ -2862,19 +3011,11 @@ async function generateAiReply(chat, isRegenerate = false) {
 
     if (!key) { alert("请先在 API 配置中填写 Key"); return; }
 
-    // 2. UI 显示 "对方正在输入..."
-    const tempId = Date.now();
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    
-    chat.messages.push({
-        text: '<i class="fas fa-spinner fa-spin"></i> 输入中',
-        isSelf: false,
-        time: timeStr,
-        id: tempId,
-        isLoading: true
-    });
-    renderMessages(chat); 
+    // 2. UI 交互：修改标题为 "对方正在输入..."
+    const titleEl = document.getElementById('roomTitle');
+    if (titleEl && currentChatId === chat.id) {
+        titleEl.innerText = "对方正在输入...";
+    }
 
     // 1. 基础数据准备
     const validHistory = chat.messages.filter(m => !m.isLoading && !m.isHidden);
@@ -2893,8 +3034,22 @@ async function generateAiReply(chat, isRegenerate = false) {
         const diffMs = nowTime - lastTime;
         const diffMins = Math.floor(diffMs / (1000 * 60));
 
-        // 获取当前具体几点 (0-23)，用于判断是否是早上
-        const currentHour = new Date().getHours();
+        const currentHour = parseInt(new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Shanghai',
+    hour: 'numeric',
+    hour12: false 
+}).format(new Date()));
+
+let timePeriodDesc = "";
+if (currentHour >= 0 && currentHour < 5) timePeriodDesc = "深夜/凌晨";
+else if (currentHour >= 5 && currentHour < 9) timePeriodDesc = "刚睡醒的清晨";
+else if (currentHour >= 9 && currentHour < 12) timePeriodDesc = "上午";
+else if (currentHour >= 12 && currentHour < 14) timePeriodDesc = "中午午休时间";
+else if (currentHour >= 14 && currentHour < 18) timePeriodDesc = "下午";
+else if (currentHour >= 18 && currentHour < 23) timePeriodDesc = "晚上";
+else timePeriodDesc = "深夜";
+
+const isMorningWakeUp = (currentHour >= 5 && currentHour <= 11) && (diffMins > 360 && diffMins < 840);
 
         console.log(`[时间感知] AI上次发言: ${new Date(lastTime).toLocaleString()}`);
         console.log(`[时间感知] 当前时间: ${new Date(nowTime).toLocaleString()}`);
@@ -2937,6 +3092,9 @@ async function generateAiReply(chat, isRegenerate = false) {
 注意：是你发完消息后，**用户一直没回**，把你晾在这一边长达 ${timeDesc}。
 请根据人设做出反应（例如：抱怨用户去哪了、撒娇说想你了、或者高冷地问“你还知道回来？”）。
 禁止说是你自己去忙了。
+【系统强制校准】：
+当前绝对现实时间：北京时间 ${new Date().toLocaleTimeString('en-US', {timeZone:'Asia/Shanghai', hour12:false})} (${timePeriodDesc})。
+请务必根据【${timePeriodDesc}】这个时间段来调整你的精神状态（例如深夜是困倦或感性，清晨是朦胧）。
 `;
             }
         }
@@ -2952,6 +3110,9 @@ async function generateAiReply(chat, isRegenerate = false) {
     const activeSystemPrompt = SYSTEM_COMMAND_PROMPT.replace(/{{char}}/g, charName);
     
     let systemPrompt = activeSystemPrompt + `\n\n` + getFullPersona(chat) + timeGapPrompt;
+    if (typeof getCoupleStatusForAI === 'function') {
+        systemPrompt += getCoupleStatusForAI(chat);
+    }
     // 1. 世界书
     const recentContextText = chat.messages.slice(-5).map(m => m.text).join(' ');
     const wbContext = getWorldBookContext(chat, recentContextText);
@@ -2986,7 +3147,6 @@ async function generateAiReply(chat, isRegenerate = false) {
     if (chat.summaries && chat.summaries.length > 0) {
         systemPrompt += `\n【长期记忆/前情提要】：\n${chat.summaries.map(s => s.content).join('\n')}\n`;
     }
-
     systemPrompt += `\n请沉浸在角色中回复，拒绝任何AI味，保持极度口语化。`;
     
 // 5. 能力注入
@@ -3003,7 +3163,11 @@ async function generateAiReply(chat, isRegenerate = false) {
     }
     systemPrompt += `\n【语音】：格式 [VOICE:内容]`;
     systemPrompt += `\n【照片】：格式 [PHOTO:描述]`;
-
+systemPrompt += `\n【写情书/信件】：
+    如果用户让你去“情侣空间”写封信，或者你想主动写一封长信存入信箱，请在回复中单独包含指令：
+    [CP_LETTER:标题:正文内容]
+    例如：[CP_LETTER:给最爱的你:这是我今天特别想对你说的话...]
+    注意：标题不要太长，正文可以长一点。`;
     systemPrompt += `
 【最终输出格式严格要求】：
 请务必返回一个标准的 **JSON 对象**（不要返回 Markdown 代码块，不要返回纯文本）。
@@ -3048,8 +3212,21 @@ systemPrompt += `\n\n【自主转账能力】：
     如果你想向用户发起实时语音通话（例如：用户让你打过来，或者情感到位了），请在回复中单独包含指令：
     [CALL:通话理由]
     例如：[CALL:我也想听你的声音] 或 [CALL:接电话]
-    注意：这是一个非常亲密的行为。
-    `;
+    注意：这是一个非常亲密的行为。`;
+
+    const TRANS_SPLIT = "@@@TRANS@@@"; 
+    
+    if (globalData.autoTranslateEnabled) {
+        systemPrompt += `
+\n【强翻译模式已开启】：
+用户要求开启实时翻译。请遵循以下格式规则：
+在 "replies" 数组中的每一句话后面，**必须**加上该句的简体中文翻译。
+原文和翻译之间，**必须**使用 "${TRANS_SPLIT}" 作为分隔符。
+格式示例： "replies": ["Hello there.${TRANS_SPLIT}你好呀。", "How are you?${TRANS_SPLIT}你怎么样？"]
+注意：不要改变 JSON 结构，只在字符串内部拼接翻译。
+`;
+    }
+
     // 6. 消息构建与清洗
     const limit = chat.memContextLimit || 50;
     const validMsgs = chat.messages.filter(m => !m.isLoading);
@@ -3120,7 +3297,27 @@ systemPrompt += `\n\n【自主转账能力】：
             body: JSON.stringify({ model: model, messages: messagesPayload, temperature: temp })
         });
 
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        if (!response.ok) {
+            let errorMsg = `API Error: ${response.status}`; // 默认显示状态码
+            try {
+                // 尝试解析 API 返回的 JSON 错误包
+                const errData = await response.json();
+                // 常见的错误格式适配 (OpenAI / Claude / 中转商)
+                if (errData.error && errData.error.message) {
+                    errorMsg = errData.error.message;
+                } else if (errData.message) {
+                    errorMsg = errData.message;
+                } else if (typeof errData.error === 'string') {
+                    errorMsg = errData.error;
+                } else {
+                    // 实在解析不出具体字段，就把整个对象转字符串显示
+                    errorMsg = JSON.stringify(errData);
+                }
+            } catch (e) {
+                // 如果返回的不是 JSON (比如 HTML 报错页)，就保持只显示状态码
+            }
+            throw new Error(errorMsg); // 抛出具体的错误信息
+        }
         const data = await response.json();
         let replyContent = data.choices[0].message.content;
 
@@ -3226,92 +3423,96 @@ systemPrompt += `\n\n【自主转账能力】：
 
         // 过滤空消息
         segments = segments.filter(s => s && s.trim());
-
-        chat.messages = chat.messages.filter(m => m.id !== tempId); // 移除内存里的转圈圈
         
-        // ★★★ 修复：只有当前正在看这个角色时，才刷新界面移除转圈圈 ★★★
-        if (currentChatId === chat.id) {
-            renderMessages(chat); 
+        // 恢复标题为角色名字
+        if (document.getElementById('roomTitle') && currentChatId === chat.id) {
+            document.getElementById('roomTitle').innerText = chat.name;
         }
 
         let hasUsedReplyInThisTurn = false;
 
+        // 必须和上面定义的保持一致
+        const TRANS_SPLIT = "@@@TRANS@@@"; 
+
         for (let i = 0; i < segments.length; i++) {
             const newTime = new Date();
             const newTimeStr = `${String(newTime.getHours()).padStart(2,'0')}:${String(newTime.getMinutes()).padStart(2,'0')}`;
-            let segmentText = segments[i].trim();
             
-            let aiReplyCtx = null;
+            // 1. 获取原始文本
+            let rawSegment = segments[i].trim();
+            
+            // 2. ★★★ 核心步骤：切分原文和翻译 ★★★
+            let segmentText = rawSegment; // 默认全是原文
+            let transText = null;         // 默认没翻译
+
+            if (rawSegment.includes(TRANS_SPLIT)) {
+                const parts = rawSegment.split(TRANS_SPLIT);
+                segmentText = parts[0].trim(); // 前半截是原文(Hello)
+                if (parts[1] && parts[1].trim()) {
+                    transText = parts[1].trim(); // 后半截是翻译(你好)
+                }
+            }
+
+            // 3. 插件处理 (处理的是不带翻译的 segmentText)
             let mainText = segmentText;
+            if (window.aiCommandProcessors && window.aiCommandProcessors.length > 0) {
+                for (const processor of window.aiCommandProcessors) {
+                    try {
+                        const result = processor(chat, mainText);
+                        if (result !== undefined && result !== null) {
+                            mainText = result;
+                        }
+                    } catch (e) {
+                        console.error("插件处理出错:", e);
+                    }
+                }
+            }
+
+            if (!mainText) continue;
+
+            // 4. --- 各种指令处理 (保持原有逻辑) ---
             let aiRecallContent = null;
-            
             const withdrawMatch = mainText.match(/^\[WITHDRAWN:(.*?)\]$/);
             if (withdrawMatch) { aiRecallContent = withdrawMatch[1]; mainText = aiRecallContent; }
-            // ★★★ 新增逻辑：解析并执行转账操作 (收下/退还) ★★★
+           
+            // 转账操作指令
             mainText = mainText.replace(/\[TRANSFER_OP:([0-9.]+):([A-Z]+)\]/g, (match, id, action) => {
                 const targetMsg = chat.messages.find(m => m.id == id);
                 if (targetMsg && targetMsg.status === 'pending') {
                     if (action === 'RECEIVE') targetMsg.status = 'received';
                     else if (action === 'REFUND') targetMsg.status = 'refunded';
-                    // 强制刷新前面的消息状态
                     updateChatLastMsg(chat); 
                 }
-                return ''; // 从气泡文本中移除指令
+                return ''; 
             });
-            // ★★★ 插入结束 ★★★
-            
+
+            // 主动转账
             const transferMatch = mainText.match(/\[TRANSFER:([0-9.]+):(.*?)\]/);
             if (transferMatch) {
-                const amount = transferMatch[1]; // 提取金额
-                const note = transferMatch[2];   // 提取备注
-                
-                // 构造 AI 的转账消息
+                const amount = transferMatch[1]; 
+                const note = transferMatch[2];   
                 const aiTransferMsg = {
                     id: Date.now() + Math.random(),
-                    type: 'transfer',
-                    isSelf: false, // 对方发的
-                    time: newTimeStr,
-                    timestamp: Date.now(),
-                    amount: parseFloat(amount).toFixed(2),
-                    note: note,
-                    status: 'pending', // 初始状态：待我领取
-                    transferBy: 'ai',  // 发起人是 AI
-                    text: `[转账] ¥${amount}`,
-                    contentDescription: `[发起转账 ¥${amount}]`
+                    type: 'transfer', isSelf: false, time: newTimeStr, timestamp: Date.now(),
+                    amount: parseFloat(amount).toFixed(2), note: note, status: 'pending', transferBy: 'ai',  
+                    text: `[转账] ¥${amount}`, contentDescription: `[发起转账 ¥${amount}]`
                 };
-                
                 chat.messages.push(aiTransferMsg);
-                
-                // 从文本中删掉指令，防止显示出来
                 mainText = mainText.replace(transferMatch[0], '').trim();
-                
-                // 如果这条消息只包含转账指令，这就处理完了，跳过后面渲染普通气泡的步骤
-                if (!mainText) {
-                    updateChatLastMsg(chat);
-                    renderMessages(chat);
-                    continue; 
-                }
+                if (!mainText) { updateChatLastMsg(chat); renderMessages(chat); continue; }
             }
-            // ★★★ 新增：检测主动通话指令 [CALL:理由] ★★★
+
+            // 主动通话
             const callMatch = mainText.match(/\[CALL:(.*?)\]/);
             if (callMatch) {
                 const reason = callMatch[1] || "想听听你的声音";
-                
-                // 1. 触发来电弹窗 (延时 0.8秒 更有真实感)
-                setTimeout(() => {
-                    // 调用之前写的 showIncomingCallModal 函数
-                    if (typeof showIncomingCallModal === 'function') {
-                        showIncomingCallModal(chat, reason);
-                    }
-                }, 800);
-                
-                // 2. 从气泡文本中移除指令，不显示出来
+                setTimeout(() => { if (typeof showIncomingCallModal === 'function') showIncomingCallModal(chat, reason); }, 800);
                 mainText = mainText.replace(callMatch[0], '').trim();
-                
-                // 3. 如果这条消息只包含指令，处理完直接跳过，不渲染空气泡
                 if (!mainText) continue; 
             }
 
+            // 引用回复
+            let aiReplyCtx = null;
             if (mainText.includes('[REPLY:')) {
                 const replyMatch = mainText.match(/\[REPLY:([^\]]{1,50})\]/);
                 if (replyMatch) {
@@ -3323,31 +3524,44 @@ systemPrompt += `\n\n【自主转账能力】：
                 }
             }
 
-            if (aiReplyCtx) { if (hasUsedReplyInThisTurn) aiReplyCtx = null; else hasUsedReplyInThisTurn = true; }
-            if (!mainText) continue;
-
-            // ★★★ 修复开始：[PHOTO] 正确生成图片气泡 ★★★
+            // 5. --- 富媒体替换 (Photo/Voice/Sticker) ---
             mainText = mainText.replace(/\[PHOTO:(.*?)\]/g, (match, desc) => {
-                // 你的固定“假图”链接
                 const aiImgUrl = "https://img.heliar.top/file/1767108859529_IMG_9793.jpeg"; 
-                // 获取描述文字，如果没有就默认为"图片"
                 const photoDesc = (desc || "图片").trim();
                 return `<img src="${aiImgUrl}" class="photo-msg-img" data-desc="${photoDesc}" onclick="showPhotoDescription(this.dataset.desc, event)">`;
             });
-            // ★★★ 修复结束 ★★★
-            mainText = mainText.replace(/\[VOICE:(.*?)\]/g, (match, voiceText) => {
-                const text = voiceText.trim();
-                const duration = Math.min(60, Math.max(1, Math.ceil(text.length / 3)));
-                 return `<div class="voice-inner-container" onclick="toggleVoiceText(this, event)"><div class="voice-main-row"><div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div><span class="voice-duration">${duration}"</span></div><div class="voice-trans-result">${text}</div></div>`;
-});
+
+            const voiceMatch = mainText.match(/\[VOICE:(.*?)\]/);
+            if (voiceMatch) {
+                let voiceContent = voiceMatch[1].trim();
+                let voiceDuration = Math.min(60, Math.max(1, Math.ceil(voiceContent.length / 3)));
+                let audioUrl = null;
+                if (chat.minimaxVoiceId) {
+                    // 注意：这里需要 await，外层循环必须是 async 的 (generateAiReply 已经是 async 了)
+                    audioUrl = await fetchMiniMaxTTS(voiceContent, chat.minimaxVoiceId);
+                }
+                const audioAttr = audioUrl ? `data-audio="${audioUrl}"` : "";
+                const visualClass = audioUrl ? "has-audio" : "";
+                const replacement = `
+                    <div class="voice-inner-container ${visualClass}" ${audioAttr} onclick="toggleVoiceText(this, event)">
+                        <div class="voice-main-row">
+                            <div class="voice-animate-icon"><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div><div class="voice-line"></div></div>
+                            <span class="voice-duration">${voiceDuration}"</span>
+                        </div>
+                        <div class="voice-trans-result">${voiceContent}</div>
+                    </div>`;
+                mainText = mainText.replace(voiceMatch[0], replacement);
+            }
+
             mainText = mainText.replace(/\[STICKER:(.*?)\]/g, (match, name) => {
                 const stickerName = name.trim();
-                let sticker = myStickers.find(s => s.name === stickerName) || myStickers.find(s => s.name.includes(stickerName) || stickerName.includes(s.name));
+                let sticker = myStickers.find(s => s.name === stickerName) || myStickers.find(s => s.name.includes(stickerName));
                 if (sticker) return `<img src="${sticker.src}" class="chat-sticker-img">`;
                 if (myStickers.length > 0) return `<img src="${myStickers[Math.floor(Math.random() * myStickers.length)].src}" class="chat-sticker-img">`;
                 return `<span style="color:#aaa;font-size:12px;font-style:italic;">[${stickerName}]</span>`;
             });
 
+            // 6. 生成列表预览描述
             let desc = null;
             if (mainText.includes('voice-inner-container')) {
                  const t = document.createElement('div'); t.innerHTML = mainText;
@@ -3356,85 +3570,90 @@ systemPrompt += `\n\n【自主转账能力】：
             } else if (mainText.includes('chat-sticker-img')) desc = "[发送了一张表情包]";
             else if (mainText.includes('photo-msg-img')) desc = "[发送了一张照片]";
 
+            // 7. ★★★ 核心：如果有翻译，且内容不是纯图片/语音，就拼接到尾部 ★★★
+            // 判断是不是纯富媒体消息 (这种通常不需要翻译)
+            const isRichContent = mainText.includes('<img') || mainText.includes('voice-inner-container');
+            
+            if (transText && !isRichContent) {
+                // 这里用的 CSS 是你之前定义好的
+                const transHtml = `<div class="msg-trans-line"></div><div class="msg-trans-text">${transText}</div>`;
+                mainText += transHtml;
+            }
+
+            // 8. 模拟打字延迟
             const delay = 500 + (segmentText.length * 50);
             if (i > 0) await new Promise(resolve => setTimeout(resolve, delay));
             else await new Promise(resolve => setTimeout(resolve, 300));
             
+            // 9. 构建消息对象并保存
             let msgData = { text: mainText, isSelf: false, time: newTimeStr, timestamp: Date.now(), contentDescription: desc };
             if (aiRecallContent !== null) { msgData.isRecalled = true; msgData.recalledText = mainText; }
             if (aiReplyCtx) msgData.replyCtx = aiReplyCtx;
 
             chat.messages.push(msgData);
-            // ... 上面是 chat.messages.push(msgData);
-
-            // ===========================================
-            // ★★★ 新增：后台推送通知逻辑 ★★★
-            // ===========================================
             
-            // 条件1: 页面不可见 (document.hidden) 或 没在看当前角色
-            // 条件2: 浏览器支持通知
-            // 条件3: 权限已允许
+            // ★★★ 注意：删除了原本这里的 runBackgroundTranslation 调用 ★★★
+
+            // 10. 通知与上屏
             const isBackground = document.hidden || (currentChatId !== chat.id);
-            
             if (isBackground && 'Notification' in window && Notification.permission === 'granted') {
-                // 准备通知内容
-                // 如果是图片/语音，显示对应的提示文字
-                let notifyBody = mainText;
-                if (notifyBody.includes('<img')) notifyBody = '[图片]';
-                else if (notifyBody.includes('voice-inner')) notifyBody = '[语音消息]';
-                else if (notifyBody.includes('sticker')) notifyBody = '[表情包]';
-                // 去除 HTML 标签
-                notifyBody = notifyBody.replace(/<[^>]+>/g, '');
-
-                // 发送通知 (通过 Service Worker 发送更稳定)
+                let notifyBody = mainText.replace(/<[^>]+>/g, '');
+                if (mainText.includes('<img')) notifyBody = '[图片]';
+                else if (mainText.includes('voice-inner')) notifyBody = '[语音]';
                 if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.ready.then(registration => {
-                        registration.showNotification(chat.name, {
-                            body: notifyBody,
-                            icon: chat.avatar, // 使用角色头像
-                            tag: 'ai-msg-' + chat.id, // 防止消息堆叠，同一个人只显示最新一条(可选)
-                            renotify: true, // 即使有旧通知，新消息来了也要震动/响铃
-                            vibrate: [200, 100, 200] // 震动模式
-                        });
+                    navigator.serviceWorker.ready.then(reg => {
+                        reg.showNotification(chat.name, { body: notifyBody, icon: chat.avatar, tag: 'ai-msg-'+chat.id });
                     });
                 } else {
-                    // 降级方案：直接发送 (Android 某些浏览器支持，iOS PWA 可能需要 SW)
-                    new Notification(chat.name, {
-                        body: notifyBody,
-                        icon: chat.avatar
-                    });
+                    new Notification(chat.name, { body: notifyBody, icon: chat.avatar });
                 }
             }
-            // ===========================================
+
             updateChatLastMsg(chat);
             chat.time = newTimeStr;
             if (!chat.isPinned) { chatList = chatList.filter(c => c.id !== chat.id); chatList.unshift(chat); }
             
             if (currentChatId === chat.id) {
-                // 如果正在和这个角色聊，直接上屏
                 renderMessages(chat);
                 const msgContainer = document.getElementById('roomMessages');
                 if(msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
             } else {
-                if (i === 0) {
-                    showNotification(chat, mainText);
-                }
+                if (i === 0) showNotification(chat, mainText);
             }
         }
-        saveData(); 
+        saveData();  
 
     } catch (error) {
         console.error(error);
-        chat.messages = chat.messages.filter(m => m.id !== tempId);
         
-        // ★★★ 修复：报错时也只在当前窗口刷新 ★★★
-        if (currentChatId === chat.id) {
-            renderMessages(chat);
+        // 恢复标题状态
+        const titleEl = document.getElementById('roomTitle');
+        if (titleEl && currentChatId === chat.id) {
+            titleEl.innerText = chat.name;
         }
         
-        // 可选：如果是后台报错，可以用弹窗提示（不强求，防止太吵）
+        // 2. 获取时间
+        const errTime = new Date();
+        const errTimeStr = `${String(errTime.getHours()).padStart(2,'0')}:${String(errTime.getMinutes()).padStart(2,'0')}`;
+        
+        // 3. ★★★ 构建错误气泡：直接显示刚才提取的详细信息 ★★★
+        const errorMsg = {
+            text: `Error: ${error.message}`, // 这里显示的就会是 "余额不足" 或 "模型不存在" 了
+            isSelf: false,
+            time: errTimeStr,
+            timestamp: Date.now(),
+            contentDescription: '[生成失败]'
+        };
+        
+        // 4. 保存与渲染
+        chat.messages.push(errorMsg);
+        updateChatLastMsg(chat);
+        saveData();
+        
         if (currentChatId === chat.id) {
-            alert("AI 生成失败: " + error.message);
+            renderMessages(chat);
+            const msgContainer = document.getElementById('roomMessages');
+            if(msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
         }
     }
 }
@@ -3676,13 +3895,21 @@ function updateChatLastMsg(chat) {
 }
 
 function toggleVoiceText(el, e) {
-    if (e) e.stopPropagation(); // 阻止事件冒泡
+    if (e) e.stopPropagation(); 
+
+    // 1. 获取音频链接
+    const audioSrc = el.getAttribute('data-audio');
+    
+    // 2. 如果有音频，播放音频
+    if (audioSrc) {
+        const audio = new Audio(audioSrc);
+        audio.play();
+    }
+
+    // 3. 原有逻辑：切换显示/隐藏文字 (作为字幕)
     const resultBox = el.querySelector('.voice-trans-result');
     if (resultBox) {
-        // 切换显示/隐藏类
         resultBox.classList.toggle('show');
-        
-        // 自动滚动到底部，确保转文字出来的瞬间不会被遮挡
         const container = document.getElementById('roomMessages');
         if(container) {
             setTimeout(() => {
@@ -6156,36 +6383,60 @@ async function saveMomentsToDB() {
 // ★★★ AI 自主生活模拟系统 (Heartbeat) ★★★
 // =========================================
 
-// 每 60 秒检查一次所有角色的状态
+// 每 60 秒检查一次 (心跳)
 setInterval(() => {
     simulateCharacterLife();
 }, 60 * 1000); 
 
-function simulateCharacterLife() {
-    console.log("[生活模拟] 正在检查角色状态...");
-    
+async function simulateCharacterLife() {
+    // 1. 检查全局开关
+    if (!globalData.autoActivityEnabled) {
+        console.log("[后台] 全局开关已关闭，跳过检查");
+        return;
+    }
+
+    console.log("[后台] 正在检查角色生活状态...");
     const now = Date.now();
-    const currentHour = new Date().getHours();
 
-    // 遍历所有角色
-    chatList.forEach(chat => {
-        // 1. 获取上次发动态的时间 (如果没有发过，默认为很久以前)
-        const lastPostTime = chat.lastMomentTime || 0;
-        const timeDiff = now - lastPostTime;
+    // 2. 获取频率设置 (毫秒)
+    // 0=6h, 1=3h, 2=1h
+    let intervalMs = 6 * 60 * 60 * 1000; // 默认低频
+    const freqSetting = globalData.autoFreq || 0;
+    
+    if (freqSetting === 1) intervalMs = 3 * 60 * 60 * 1000; // 中频
+    if (freqSetting === 2) intervalMs = 1 * 60 * 60 * 1000; // 高频
 
-        // 2. 冷却时间控制：每人至少间隔 4 小时才允许自主发一条 (避免刷屏)
-        // 4小时 = 4 * 60 * 60 * 1000
-        if (timeDiff < 4 * 3600 * 1000) return;
+    // 3. 获取允许的角色列表
+    const allowedIds = globalData.autoAllowedCharIds || [];
 
-        if (Math.random() > 0.04) return;
+    // 4. 遍历所有角色
+    for (const chat of chatList) {
+        // 如果该角色没被勾选，直接跳过
+        if (!allowedIds.includes(chat.id)) continue;
 
-        // 4. 触发生活动态生成
-        triggerAiSocialAction(chat, 'life');
-    });
+        // 获取上次发动态或说话的时间 (如果没有，默认为很久以前)
+        const lastActionTime = chat.lastMomentTime || 0;
+        const timeDiff = now - lastActionTime;
+
+        // ★ 核心判定：是否达到时间间隔
+        if (timeDiff >= intervalMs) {
+            const isOverdue = timeDiff > (intervalMs * 1.5);
+            
+            if (isOverdue || Math.random() < 0.4) {
+                console.log(`[后台] ${chat.name} 触发独立行动 (间隔满足)`);
+                
+                await triggerAiSocialAction(chat, 'life');
+                
+            }
+        }
+    }
 }
 
 // =========================================
 // ★★★ [修改] AI 社交行为触发器 (朋友圈) ★★★
+// =========================================
+// =========================================
+// ★★★ [修改核心] AI 社交行为触发器 (支持私聊/朋友圈/电话) ★★★
 // =========================================
 async function triggerAiSocialAction(chat, source = 'chat') {
     const apiKey = document.getElementById('apiKey').value;
@@ -6194,18 +6445,19 @@ async function triggerAiSocialAction(chat, source = 'chat') {
     
     if (!apiKey) return;
 
-    console.log(` [${source === 'life' ? '自主生活' : '聊天触发'}] 正在为 [${chat.name}] 生成动态...`);
+    console.log(` [${source === 'life' ? '自主生活' : '聊天触发'}] 正在为 [${chat.name}] 生成自主行为...`);
+    
     // 聊天摘要
     const recentChat = chat.messages.slice(-5).map(m => `${m.isSelf ? '用户' : '我'}: ${m.text}`).join('\n');
     
-    // ★★★ 核心修改：注入世界书 (使用聊天摘要来匹配关键词) ★★★
-    const wbContext = getWorldBookContext(chat, recentChat);
+    // 注入世界书
+    const wbContext = typeof getWorldBookContext === 'function' ? getWorldBookContext(chat, recentChat) : "";
 
     let contextPrompt = "";
     if (source === 'life') {
         contextPrompt = `
-【触发模式】：这是你根据自己的生活节奏自主发布的内容。
-【你的状态】：请结合你的【人设】和【世界观设定】，想象你现在正在做什么。
+【触发模式】：这是你根据自己的生活节奏自主发起的行为（用户可能不在）。
+【你的状态】：请结合你的【人设】和【世界观】，想象你现在正在做什么，或者是否想念用户。
 `;
     } else {
         contextPrompt = `
@@ -6215,22 +6467,8 @@ ${recentChat}
 `;
     }
 
-    // 1. 获取我自己（AI角色）动态下，用户的最新评论
-    const myMoments = momentList.filter(m => m.userId === chat.id).slice(0, 3);
-    let commentsContext = "";
-    myMoments.forEach(m => {
-        if (m.comments && m.comments.length > 0) {
-            // 拼接评论上下文，告诉AI哪条动态下有谁的评论
-            commentsContext += `动态ID[${m.id}]: "${m.content}" 下有评论 -> ${m.comments.map(c => `[${c.name}]: ${c.content}`).join(' | ')}\n`;
-        }
-    });
-
-    // 2. 获取用户（你）最近 3 条动态，增加评论概率
-    const userMoments = momentList.filter(m => m.userId === 'me').slice(0, 3);
-    
-    // 这里定义 userLastMoment 供后面 JSON 示例使用（只定义这一次）
-    const userLastMoment = userMoments[0]; 
-
+    // 获取朋友圈上下文
+    const userMoments = typeof momentList !== 'undefined' ? momentList.filter(m => m.userId === 'me').slice(0, 3) : [];
     let userMomentContext = "用户近期没有发朋友圈。";
     if (userMoments.length > 0) {
         userMomentContext = "用户最近发布的朋友圈：\n";
@@ -6238,7 +6476,6 @@ ${recentChat}
             userMomentContext += `- [动态ID: ${m.id}]: ${m.content} (时间:${m.time})\n`;
         });
     }
-
 
     const systemPrompt = `
 你现在是“${chat.name}”，正在使用手机。
@@ -6250,9 +6487,6 @@ ${contextPrompt}
 
 【用户动态】
 ${userMomentContext}
-
-【你收到的一条或多条评论】(如果有)：
-${commentsContext || "暂无新评论"}
 
 【任务目标】
 根据当前模式、时间、世界观及你对用户的情感浓度，决定执行以下**其中一项**操作：
@@ -6273,13 +6507,13 @@ ${commentsContext || "暂无新评论"}
 4.**REPLY (回复评论)**: 如果上面显示【你收到了评论】，且你觉得需要回复用户，请选择此项。
 
 5. **NONE**: 
-   - 此时此刻不想操作。
+   - 此时此刻在忙，或者觉得没必要打扰用户。
 
-【输出格式】(纯JSON)
+【输出格式】(纯JSON，严禁Markdown)
+- 发消息: {"action": "CHAT", "content": "..."}
 - 发动态: {"action": "POST", "content": "..."}
-- 评论: {"action": "COMMENT", "targetId": ${userLastMoment ? userLastMoment.id : 'null'}, "content": "..."}
-- 回复评论: {"action": "REPLY", "targetId": 12345, "content": "..."} (注意：targetId 必须填上面显示的动态ID)
-- 打电话: {"action": "CALL", "reason": "想你了/想跟你说..."}
+- 评论: {"action": "COMMENT", "targetId": 123, "content": "..."} 
+- 打电话: {"action": "CALL", "reason": "..."}
 - 无操作: {"action": "NONE"}
 `;
 
@@ -6305,8 +6539,63 @@ ${commentsContext || "暂无新评论"}
 
         const result = JSON.parse(resultRaw);
 
-        // --- 分支 1：发动态 ---
-        if (result.action === 'POST' && result.content) {
+        // ============================
+        // ★★★ 核心新增：CHAT 分支 (已修复分气泡逻辑) ★★★
+        // ============================
+        if (result.action === 'CHAT' && result.content) {
+            console.log(`[自主行为] ${chat.name} 决定发送消息: ${result.content}`);
+            
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            
+            const segments = result.content.split(/\n+/).map(s => s.trim()).filter(s => s);
+
+            segments.forEach((segText, index) => {
+                const newMsg = {
+                    text: segText,
+                    isSelf: false, // AI发的
+                    time: timeStr,
+                    timestamp: Date.now() + index, 
+                    contentDescription: null
+                };
+                
+                if (!chat.messages) chat.messages = [];
+                chat.messages.push(newMsg);
+            });
+            
+            if (segments.length > 0) {
+                chat.msg = segments[segments.length - 1];
+            } else {
+                chat.msg = result.content; // 兜底
+            }
+            
+            chat.time = timeStr;
+            chat.lastMomentTime = Date.now(); // 更新活跃时间
+
+            if (!chat.isPinned) {
+                chatList = chatList.filter(c => c.id !== chat.id);
+                chatList.unshift(chat);
+            }
+         
+            await db.chats.put(chat);
+            
+            if (currentChatId === chat.id) {
+   
+                renderMessages(chat);
+                const msgContainer = document.getElementById('roomMessages');
+                if(msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
+            } else {
+
+                renderChatList(); 
+                if (typeof showNotification === 'function') {
+                    const notifyText = segments.join(' '); 
+                    showNotification(chat, notifyText);
+                }
+            }
+
+        }
+       
+        else if (result.action === 'POST' && result.content) {
             const aiHandle = `@${chat.name}`; 
             const newMoment = {
                 id: Date.now(),
@@ -6324,31 +6613,30 @@ ${commentsContext || "暂无新评论"}
             momentList.unshift(newMoment);
             chat.lastMomentTime = Date.now();
             await db.chats.put(chat); 
-            saveMomentsToDB();
-            if (document.getElementById('view-moments').classList.contains('active')) renderMomentFeed();
-            console.log(`[WB增强] ${chat.name} 发圈: ${result.content}`);
+            if(typeof saveMomentsToDB === 'function') saveMomentsToDB();
+            if(typeof renderMomentFeed === 'function') renderMomentFeed();
+            console.log(`[自主行为] ${chat.name} 发圈: ${result.content}`);
 
-        // --- 分支 2：评论 ---
-        } else if (result.action === 'COMMENT' && result.targetId && result.content) {
+        } 
+        // --- 原有的 COMMENT (评论) ---
+        else if (result.action === 'COMMENT' && result.targetId && result.content) {
             const targetMoment = momentList.find(m => m.id == result.targetId);
             if (targetMoment) {
                 if (!targetMoment.comments) targetMoment.comments = [];
                 targetMoment.comments.push({ name: chat.name, content: result.content });
                 chat.lastMomentTime = Date.now(); 
                 await db.chats.put(chat);
-                saveMomentsToDB();
-                if (document.getElementById('view-moments').classList.contains('active')) renderMomentFeed();
-                console.log(`💬 [WB增强] ${chat.name} 评论了`);
+                if(typeof saveMomentsToDB === 'function') saveMomentsToDB();
+                if(typeof renderMomentFeed === 'function') renderMomentFeed(); 
+                console.log(`[自主行为] ${chat.name} 评论了动态`);
             }
-        
-        // --- ★★★ 分支 3：自主打电话 (更新版) ★★★ ---
-        } else if (result.action === 'CALL') {
+        } 
+        // --- 原有的 CALL (打电话) ---
+        else if (result.action === 'CALL') {
             console.log(`[自主行为] ${chat.name} 发起语音通话`);
-            
             const nowCall = new Date();
             const timeStrCall = `${String(nowCall.getHours()).padStart(2,'0')}:${String(nowCall.getMinutes()).padStart(2,'0')}`;
             
-            // 1. 插入邀请消息 (作为记录)
             chat.messages.push({
                 text: `[邀请语音通话] ${result.reason || "想听听你的声音"}`,
                 isSelf: false,
@@ -6356,41 +6644,23 @@ ${commentsContext || "暂无新评论"}
                 timestamp: Date.now(),
                 contentDescription: `[${chat.name} 向你发起了语音通话]` 
             });
-            
             chat.msg = `[语音通话邀请]`;
             chat.time = timeStrCall;
+            chat.lastMomentTime = Date.now();
             
             await db.chats.put(chat);
-            saveData();
-            
-            // 2. 如果用户恰好在这个聊天窗口，显示【新版液态弹窗】
             if (currentChatId === chat.id) {
                 renderMessages(chat); 
-                
-                // 延时 1 秒后弹出，增加真实感
                 setTimeout(() => {
-                    showIncomingCallModal(chat, result.reason);
+                    if(typeof showIncomingCallModal === 'function') showIncomingCallModal(chat, result.reason);
                 }, 1000);
-            }
-            // --- ★★★ 分支 4：回复评论 (新增) ★★★ ---
-        } else if (result.action === 'REPLY' && result.targetId && result.content) {
-            const targetMoment = momentList.find(m => m.id == result.targetId);
-            if (targetMoment) {
-                if (!targetMoment.comments) targetMoment.comments = [];
-                // 这里的名字填 AI 的名字
-                targetMoment.comments.push({ name: chat.name, content: result.content });
-                
-                chat.lastMomentTime = Date.now();
-                await db.chats.put(chat);
-                saveMomentsToDB();
-                
-                // 刷新界面
-                if (document.getElementById('view-moments').classList.contains('active')) renderMomentFeed();
-                console.log(` [WB增强] ${chat.name} 回复了用户的评论: ${result.content}`);
+            } else {
+                 renderChatList();
+                 if (typeof showNotification === 'function') showNotification(chat, "[邀请语音通话]");
             }
         }
           
-    } catch (e) { console.error("AI 社交决策失败:", e); }
+    } catch (e) { console.error("AI 自主行为决策失败:", e); }
 }
 
 /* ========================================= */
@@ -7115,12 +7385,26 @@ async function triggerVcFirstMessage(chat) {
 
         const segments = reply.split(/\n+/).filter(s => s.trim());
         
+        // ★★★ 修改：语音通话首句支持 TTS ★★★
         for (let i = 0; i < segments.length; i++) {
-            setTimeout(() => {
-                const segText = segments[i].trim();
-                addVcMessage("ai", segText);
-                saveToHistory(chat, segText, false);
-            }, i * 800); 
+            const segText = segments[i].trim();
+            if(!segText) continue;
+
+            let audioUrl = null;
+            if (chat.minimaxVoiceId) {
+                audioUrl = await fetchMiniMaxTTS(segText, chat.minimaxVoiceId);
+            }
+
+            await new Promise(r => setTimeout(r, 500 + segText.length * 50));
+
+            addVcMessage("ai", segText);
+            
+            if (audioUrl) {
+                const audio = new Audio(audioUrl);
+                audio.play();
+            }
+            
+            saveToHistory(chat, segText, false);
         }
 
     } catch (e) {
@@ -7315,10 +7599,26 @@ async function generateVcReply(chat, userText) {
         const segments = reply.split(/\n+/).filter(s => s.trim());
         
         for (let i = 0; i < segments.length; i++) {
-            await new Promise(resolve => setTimeout(resolve, 600 + (segments[i].length * 50))); 
-            
             const segText = segments[i].trim();
+            
+            // 1. 生成语音
+            let audioUrl = null;
+            if (chat.minimaxVoiceId) {
+                audioUrl = await fetchMiniMaxTTS(segText, chat.minimaxVoiceId);
+            }
+
+            // 2. 模拟语速延迟
+            await new Promise(resolve => setTimeout(resolve, 600 + (segText.length * 50))); 
+            
+            // 3. 上屏
             addVcMessage("ai", segText);
+            
+            // 4. 播放
+            if (audioUrl) {
+                const audio = new Audio(audioUrl);
+                audio.play();
+            }
+
             saveToHistory(chat, segText, false);
         }
         
@@ -7574,3 +7874,157 @@ function tryRequestNotificationPermission() {
 document.addEventListener('click', () => {
     tryRequestNotificationPermission();
 }, { once: true }); // once: true 表示只执行一次，申请过就不再监听点击了
+
+// 1. 切换全局开关
+function toggleAutoActivityGlobal() {
+    const toggle = document.getElementById('autoActivityToggle');
+    const panel = document.getElementById('autoFreqPanel');
+    
+    // 1. 切换 UI 状态
+    toggle.classList.toggle('checked');
+    const isEnabled = toggle.classList.contains('checked');
+    
+    // 2. 实时更新界面显隐
+    if (isEnabled) {
+        panel.style.display = 'flex';
+        renderAutoCharList(); // 打开时刷新列表
+    } else {
+        panel.style.display = 'none';
+    }
+
+    // ★★★ 核心修复：点击开关后，立刻同步到内存并保存到数据库 ★★★
+    if (typeof globalData !== 'undefined') {
+        globalData.autoActivityEnabled = isEnabled;
+    }
+    saveData(); // 强制执行保存
+}
+
+// 2. 更新频率文字显示
+function updateAutoFreqDisplay(val) {
+    const display = document.getElementById('autoFreqDisplay');
+    const v = parseInt(val);
+    if (v === 0) display.innerText = "低频 (6h)";
+    else if (v === 1) display.innerText = "中频 (3h)";
+    else display.innerText = "高频 (1h)";
+}
+
+// 3. 渲染角色勾选列表
+function renderAutoCharList() {
+    const container = document.getElementById('autoCharListBody');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    // 获取已保存的允许列表 (存的是 ID 数组)
+    const allowedIds = globalData.autoAllowedCharIds || [];
+
+    chatList.forEach(chat => {
+        const item = document.createElement('div');
+        item.className = 'auto-char-item';
+        
+        const isChecked = allowedIds.some(id => id == chat.id) ? 'checked' : '';
+        
+        item.innerHTML = `
+            <div class="auto-char-info">
+                <img src="${chat.avatar}" class="auto-char-avatar">
+                <span class="auto-char-name">${chat.name}</span>
+            </div>
+            <input type="checkbox" class="auto-char-checkbox" value="${chat.id}" ${isChecked}>
+        `;
+        container.appendChild(item);
+    });
+}
+
+// 4. 折叠/展开角色列表
+function toggleAutoCharList() {
+    const body = document.getElementById('autoCharListBody');
+    const arrow = document.getElementById('autoCharArrow');
+    
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        arrow.classList.replace('fa-chevron-down', 'fa-chevron-up');
+    } else {
+        body.style.display = 'none';
+        arrow.classList.replace('fa-chevron-up', 'fa-chevron-down');
+    }
+}
+
+// 5. 保存设置
+function saveAutoSettings() {
+    // 获取开关状态
+    const isEnabled = document.getElementById('autoActivityToggle').classList.contains('checked');
+    
+    // 获取频率
+    const freq = document.getElementById('autoFreqSlider').value;
+    
+    // 获取勾选的角色ID
+    const checkboxes = document.querySelectorAll('.auto-char-checkbox:checked');
+    const allowedIds = Array.from(checkboxes).map(cb => parseInt(cb.value)); // 确保是数字
+    
+    // 存入全局数据
+    globalData.autoActivityEnabled = isEnabled;
+    globalData.autoFreq = parseInt(freq);
+    globalData.autoAllowedCharIds = allowedIds;
+    
+    saveData(); // 保存到数据库
+    
+    alert("后台活动配置已保存！\n" + (isEnabled ? "AI 将按设定频率开始活跃。" : "后台活动已关闭。"));
+}
+// ★★★ 新增：自动翻译开关控制 ★★★
+function toggleAutoTranslate() {
+    const toggle = document.getElementById('autoTranslateToggle');
+    toggle.classList.toggle('checked');
+    
+    // 立即保存状态
+    const isEnabled = toggle.classList.contains('checked');
+    if (typeof globalData !== 'undefined') {
+        globalData.autoTranslateEnabled = isEnabled;
+    }
+    saveData();
+}
+// =========================================
+// ★★★ MiniMax TTS 核心功能 ★★★
+// =========================================
+async function fetchMiniMaxTTS(text, voiceId) {
+    // 获取全局配置
+    const groupId = document.getElementById('minimaxGroupId').value;
+    const apiKey = document.getElementById('minimaxApiKey').value;
+    
+    if (!groupId || !apiKey || !voiceId) {
+        console.warn("MiniMax TTS 配置缺失，跳过语音生成");
+        return null; // 配置不全，返回空
+    }
+
+    const url = `https://api.minimax.chat/v1/text_to_speech?GroupId=${groupId}`;
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                voice_id: voiceId,
+                text: text,
+                model: "speech-01", 
+                speed: 1.0,
+                vol: 1.0,
+                pitch: 0
+            })
+        });
+
+        if (!response.ok) {
+            console.error("MiniMax TTS API Error:", response.status);
+            return null;
+        }
+
+        // MiniMax 返回的是音频流 (Blob)
+        const blob = await response.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        return audioUrl;
+
+    } catch (e) {
+        console.error("MiniMax TTS 请求失败:", e);
+        return null;
+    }
+}

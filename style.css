@@ -6802,3 +6802,1644 @@ textarea.wb-entry-input { height: 80px; resize: none; font-family: inherit; }
 /* 取消按钮 */
 .modal-btn.cancel { color: #999; background: transparent; }
 /* --- END: 数据管理弹窗样式 --- */
+
+/* style.css */
+
+/* 后台活动角色列表项 */
+.auto-char-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 5px;
+    border-bottom: 1px solid #f5f5f5;
+}
+.auto-char-item:last-child {
+    border-bottom: none;
+}
+
+.auto-char-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.auto-char-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #eee;
+}
+
+.auto-char-name {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+/* 复选框样式 */
+.auto-char-checkbox {
+    width: 20px;
+    height: 20px;
+    accent-color: #000; /* 黑色勾选框 */
+    cursor: pointer;
+}
+/* --- 1. 情侣空间全屏遮罩 (修改版：通透模糊背景) --- */
+#couple-space-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: var(--z-modal);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    
+    /* 改动：去掉全屏粉色晕染，改为黑色半透明遮罩 + 高斯模糊 */
+    background: rgba(0, 0, 0, 0.25); 
+    backdrop-filter: blur(8px); /* 磨砂玻璃背景 */
+    -webkit-backdrop-filter: blur(8px);
+    
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#couple-space-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+
+/* --- 2. 玻璃面板 (修改版：牛奶樱花粉，通透不突兀) --- */
+.couple-glass-box {
+    width: 85%;
+    max-width: 360px;
+    height: 70vh;
+    
+    /* 核心修改：改为从纯白 -> 极淡的粉白，去除深色杂质 */
+    background: linear-gradient(180deg, 
+        rgba(255, 255, 255, 0.98) 0%, 
+        rgba(255, 252, 253, 0.95) 60%, 
+        rgba(255, 240, 245, 0.9) 100%);
+        
+    /* 保持毛玻璃效果 */
+    backdrop-filter: blur(40px) saturate(120%);
+    -webkit-backdrop-filter: blur(40px) saturate(120%);
+    
+    /* 边框改为纯白高亮，增加精致感 */
+    border: 1px solid rgba(255, 255, 255, 1);
+    border-radius: 30px;
+    
+    /* 修改投影：用淡淡的粉色光晕代替深色阴影 */
+    box-shadow: 
+        0 20px 40px rgba(255, 192, 203, 0.2), /* 很浅的粉色投影 */
+        inset 0 -20px 60px rgba(255, 235, 240, 0.5); /* 内部底部泛起一点点嫩粉 */
+        
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    
+    position: relative;
+    overflow: hidden;
+}
+
+/* 激活时的弹跳动画 */
+#couple-space-overlay.active .couple-glass-box {
+    transform: scale(1);
+}
+
+/* 3. 头部 */
+.couple-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    margin-bottom: 10px;
+}
+
+.couple-header-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #681528; /* 深红褐色 */
+    font-family: 'Times New Roman', serif; /* 模仿图中的优雅字体 */
+    letter-spacing: 1px;
+    font-style: italic;
+}
+
+.couple-close-btn {
+    font-size: 24px;
+    color: #E33B65;
+    cursor: pointer;
+    line-height: 1;
+}
+
+/* 4. 列表区域 */
+.couple-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.couple-section-title {
+    font-size: 12px;
+    color: #E33B65;
+    font-weight: 600;
+    margin-top: 10px;
+    padding-left: 5px;
+    opacity: 0.8;
+}
+
+.couple-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.couple-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.couple-avatar-box {
+    position: relative;
+    width: 60px;
+    height: 60px;
+}
+
+.couple-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 10px rgba(227, 59, 101, 0.1);
+}
+
+/* 已开通的心形角标 */
+.couple-badge {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: #E33B65;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 10px;
+    border: 2px solid #fff;
+}
+
+/* 未开通的加号 */
+.couple-plus {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #E33B65;
+    font-size: 20px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.couple-avatar-box:not(.opened):active .couple-plus { opacity: 1; }
+
+.couple-name {
+    font-size: 12px;
+    color: #681528;
+    font-weight: 500;
+}
+/* --- style.css 新版情侣卡片样式 (替换原来的) --- */
+
+/* 1. 强制去除聊天气泡的默认背景和边距 */
+.Miu-miu .content.couple-msg-bubble,
+.Miu-miu.user .content.couple-msg-bubble,
+.Miu-miu.ai .content.couple-msg-bubble {
+    padding: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+    /* 核心：宽度固定为 255px，不再让它自己撑大 */
+    width: 255px !important;
+    min-width: 255px !important;
+    max-width: 255px !important;
+}
+
+/* 去除小尾巴 */
+.Miu-miu.user .content.couple-msg-bubble::after,
+.Miu-miu.ai .content.couple-msg-bubble::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* 2. 卡片主体样式 */
+.transfer-card.couple-card {
+    /* 粉色渐变背景 */
+    background: linear-gradient(135deg, #FAE7EC 0%, #FBE8ED 100%) !important;
+    border: 1px solid #E33B65 !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(227, 59, 101, 0.15) !important;
+    margin: 5px 0 !important;
+    
+    /* 核心：固定卡片尺寸 */
+    width: 255px !important;
+    min-width: 255px !important;
+    max-width: 255px !important;
+    height: auto !important;
+}
+
+/* 3. 卡片上半部分 (紧凑排版) */
+.couple-card-top {
+    padding: 12px 15px !important; /* 内边距缩小 */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    background: transparent !important;
+}
+
+/* 4. 图标样式 */
+.couple-icon-row {
+    font-size: 20px;
+    color: #E33B65;
+    margin-bottom: 2px;
+}
+.couple-icon-row i {
+    font-size: 20px;
+}
+
+/* 5. 标题样式 (去掉那个夸张的 VIP 字体，改用更现代的衬线体或默认) */
+.couple-title {
+    font-size: 16px !important; /* 字号改小 */
+    font-weight: 700 !important;
+    color: #681528 !important; /* 深红 */
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+    font-family: inherit; /* 不强制 Times New Roman，看起来更亲切 */
+}
+
+/* 6. 副标题/内容样式 */
+.couple-subtitle, .couple-msg-content {
+    font-size: 11px !important;
+    color: #E33B65 !important;
+    opacity: 0.8;
+}
+
+/* 回复内容 */
+.couple-msg-content {
+    font-size: 12px !important;
+    margin-top: 5px;
+    color: #681528 !important;
+    font-weight: 500;
+}
+
+/* 7. 分割线 */
+.couple-line {
+    width: 100% !important;
+    height: 1px !important;
+    background: rgba(227, 59, 101, 0.15) !important;
+    margin: 0 !important;
+}
+
+/* 8. 底部小字 */
+.couple-footer {
+    padding: 6px 15px !important;
+    font-size: 10px !important;
+    color: #E33B65 !important;
+    opacity: 0.6;
+    text-align: right;
+    background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* --- 状态变化颜色 --- */
+
+/* 同意/已开通：背景略深一点的粉 */
+.transfer-card.couple-card.accepted,
+.transfer-card.couple-card.response-yes {
+    background: linear-gradient(135deg, #FAE7EC 0%, #FFD1DC 100%) !important;
+    border-color: #E33B65 !important;
+}
+
+/* 拒绝：灰色调 */
+.transfer-card.couple-card.rejected,
+.transfer-card.couple-card.response-no {
+    background: #F8F8F8 !important;
+    border-color: #DDD !important;
+}
+.transfer-card.couple-card.response-no .couple-title {
+    color: #999 !important;
+}
+/* ========================================= */
+/* ★★★ 情侣空间 (Couple Space) 完整修正版 ★★★ */
+/* ========================================= */
+
+/* 1. 详情页容器 (基础层) */
+#couple-dashboard-view {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 5500;
+    background: #fff; 
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 2. 动态背景层 (粉色背景) */
+#cp-bg-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-size: cover;
+    background-position: center;
+    /* 默认背景：柔和的粉白渐变 */
+    background-image: linear-gradient(180deg, #FFFFFF 0%, #FFE6EA 60%, #FFD1DC 100%);
+    z-index: 0;
+}
+
+/* 3. 顶部导航栏 (强制白色图标) */
+.cp-nav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: calc(10px + env(safe-area-inset-top)) 15px 10px 15px;
+    
+    /* ★ 改为白色文字和图标 ★ */
+    color: #ffffff; 
+    font-size: 17px;
+    font-weight: 700;
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
+    /* 加一点轻微阴影防止背景太亮看不清 */
+    text-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+}
+
+.cp-nav-header i {
+    color: #ffffff !important; /* 图标强制白色 */
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* 4. 顶部卡片 (纯白、无光、无立体感) */
+.cp-top-card {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    
+    /* --- 修改开始 --- */
+    background-color: rgba(255, 255, 255, 0.85); 
+    
+    backdrop-filter: none !important;
+    
+    /* 去除所有边框和投影 */
+    border: none !important;
+    border-radius: 24px;
+    
+    /* 仅保留极淡的轮廓阴影 */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+    
+    margin: 10px 20px 20px 20px;
+    padding: 25px 30px;
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* 头像容器 (彻底去除发光) */
+.cp-avatar-wrap {
+    width: 65px !important; 
+    height: 65px !important;
+    border-radius: 50%;
+    padding: 0; 
+    background: transparent;
+    
+    /* ★★★ 核心修复：强制去除阴影和发光 ★★★ */
+    box-shadow: none !important; 
+    border: none !important; 
+    
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.cp-head-img {
+    width: 100%; 
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+}
+
+/* 中间天数文字 (改为背景同款嫩粉色) */
+.cp-days-info { 
+    flex: 1; 
+    text-align: center; 
+    cursor: pointer; 
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.cp-days-label { 
+    font-size: 12px; 
+    /* ★ 改为嫩粉色 (配合背景) ★ */
+    color: #FFB7C5!important; 
+    margin-bottom: 4px; 
+    font-weight: 600; 
+    letter-spacing: 1px;
+    text-shadow: none !important;
+}
+
+.cp-days-count { 
+    font-size: 36px; 
+    font-weight: 800; 
+    /* ★ 改为嫩粉色 (配合背景) ★ */
+    color: #FFB7C5 !important; 
+    font-family: 'Arial', sans-serif;
+    line-height: 1;
+    text-shadow: none !important;
+}
+
+/* 5. 底部菜单栏 (黑色图标 + 透明度变化) */
+.cp-menu-bar {
+    display: flex;
+    justify-content: space-around;
+    padding: 0 20px;
+    margin-bottom: 15px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+}
+
+.cp-menu-item { 
+    /* ★ 默认浅色 (低不透明度) ★ */
+    opacity: 0.4; 
+    transition: all 0.2s; 
+    cursor: pointer; 
+}
+
+/* ★ 选中或点击时变深 (完全不透明) ★ */
+.cp-menu-item.active { 
+    opacity: 1; 
+    transform: scale(1.05); 
+}
+
+.cp-menu-icon {
+    width: 44px; height: 44px;
+    background: #ffffff; /* 白底 */
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    
+    /* ★ 图标改为黑色 ★ */
+    color: #000000; 
+    
+    /* 淡淡的阴影 */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 6. 内容容器 */
+.cp-content-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px;
+    padding-bottom: 80px;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    z-index: 2;
+}
+
+/* 7. 动态卡片 & 评论区 (修复颜色) */
+.cp-feed-item {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+}
+
+.cp-feed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+.cp-feed-name { font-weight: 700; color: #333; }
+.cp-feed-time { color: #ccc; font-size: 11px; }
+
+/* 动态内容行 (包含垃圾桶) */
+.cp-feed-row {
+    display: flex;
+    justify-content: space-between; /* 左右两端对齐 */
+    align-items: flex-start;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.cp-feed-text { 
+    font-size: 15px; 
+    color: #444; 
+    line-height: 1.6; 
+    flex: 1; 
+    margin-right: 15px;
+    white-space: pre-wrap; 
+    word-break: break-all;
+}
+
+.cp-del-btn {
+    color: #ddd; /* 浅灰垃圾桶 */
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 5px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.cp-del-btn:active { color: #ff3b30; }
+
+/* ★★★ 评论区 (全灰修复) ★★★ */
+.cp-comments-area {
+    background: #F9F9F9;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-top: 5px;
+    font-size: 13px;
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px;
+    
+    /* 强制整体变灰 */
+    color: #999 !important; 
+}
+
+.cp-comment-row { 
+    /* 评论内容灰色 */
+    color: #999 !important; 
+    line-height: 1.4; 
+    word-break: break-all; 
+}
+
+.cp-cmt-user { 
+    /* 评论名字稍微深一点的灰，不要黑色 */
+    font-weight: 600; 
+    color: #777 !important; 
+    cursor: pointer; 
+}
+
+/* 8. 悬浮发布按钮 (+号) */
+.cp-fab-btn {
+    position: absolute;
+    bottom: 40px; right: 25px;
+    width: 50px; height: 50px;
+    background: #000; 
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 20px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    z-index: 6000;
+    transition: transform 0.1s;
+    cursor: pointer;
+}
+.cp-fab-btn:active { transform: scale(0.9); }
+
+/* 9. 输入弹窗 */
+.cp-input-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(5px);
+    z-index: 9999;
+    display: none;
+    align-items: center; justify-content: center;
+}
+
+.cp-input-box {
+    width: 80%;
+    max-width: 320px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    animation: zoomIn 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+.cp-input-title { font-weight: bold; margin-bottom: 15px; color: #333; text-align: center; font-size: 16px; }
+#cp-input-text {
+    width: 100%; height: 100px;
+    border: 1px solid #eee; border-radius: 12px;
+    padding: 10px; font-size: 15px; outline: none;
+    background: #f9f9f9; resize: none; margin-bottom: 15px;
+    box-sizing: border-box;
+}
+.cp-btn-row { display: flex; gap: 10px; }
+.cp-btn { flex: 1; padding: 12px 0; text-align: center; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.cp-btn.cancel { background: #f2f2f2; color: #666; }
+.cp-btn.confirm { background: #000; color: #fff; }
+
+@keyframes zoomIn { 
+    from { opacity: 0; transform: scale(0.9); } 
+    to { opacity: 1; transform: scale(1); } 
+}
+/* --- 情侣空间：经期日历样式 --- */
+
+/* 日历头部 */
+.cp-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 5px;
+    margin-bottom: 10px;
+}
+.cp-cal-month {
+    font-size: 20px;
+    font-weight: 800;
+    color: #333;
+}
+.cp-cal-controls i {
+    font-size: 18px;
+    color: #333;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+/* 星期抬头 */
+.cp-week-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 10px;
+}
+
+/* 日历网格 */
+.cp-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    /* 自动填充高度，使其铺满 */
+    grid-auto-rows: 1fr; 
+    gap: 8px 0;
+    padding-bottom: 20px;
+}
+
+/* 日期单元格 */
+.cp-date-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: 50px;
+    cursor: pointer;
+    position: relative;
+}
+
+.cp-date-num {
+    font-size: 16px;
+    color: #333;
+    z-index: 2;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: 500;
+}
+
+/* 今天的特殊样式 (文字下面加个点或者圈) */
+.cp-date-cell.is-today .cp-date-num {
+    border: 1px solid #E33B65;
+    color: #E33B65;
+    font-weight: 700;
+}
+
+/* --- 状态颜色圆圈 (模仿图示) --- */
+
+/* 1. 经期 (实心粉红) */
+.cp-date-cell.status-period .cp-date-num {
+    background-color: #FF5276;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(255, 82, 118, 0.4);
+}
+
+/* 2. 预测经期 (浅粉条纹或浅色) */
+.cp-date-cell.status-predict .cp-date-num {
+    background-color: #FFDce5; /* 浅粉 */
+    color: #FF5276;
+    /* 加上斜纹效果更像预测 */
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.5) 2px,
+      rgba(255, 255, 255, 0.5) 4px
+    );
+}
+
+/* 3. 排卵期 (浅蓝) */
+.cp-date-cell.status-fertile .cp-date-num {
+    background-color: #5AC8FA;
+    color: #fff;
+}
+
+/* 4. 排卵日 (紫色/深蓝) */
+.cp-date-cell.status-ovulation .cp-date-num {
+    background-color: #9d75ff; /* 紫色 */
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(157, 117, 255, 0.4);
+}
+
+/* 心形小图标 (可选，放在日期下方) */
+.cp-date-icon {
+    font-size: 8px;
+    margin-top: 2px;
+    color: #FF5276;
+    display: none;
+}
+.cp-date-cell.has-record .cp-date-icon { display: block; }
+
+/* 底部图例 */
+.cp-legend-row {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+.cp-legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    color: #666;
+    gap: 4px;
+}
+.cp-dot { width: 8px; height: 8px; border-radius: 50%; display: block; }
+.l-period { background: #FF5276; }
+.l-predict { background: #FFDce5; }
+.l-fertile { background: #5AC8FA; }
+.l-ovulation { background: #9d75ff; }
+
+/* 状态选择弹窗 */
+.cp-period-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+.cp-p-opt {
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #fff;
+}
+.cp-p-opt.period { background: #FF5276; }
+.cp-p-opt.predict { background: #FFDce5; color: #FF5276; }
+.cp-p-opt.fertile { background: #5AC8FA; }
+.cp-p-opt.ovulation { background: #9d75ff; }
+.cp-p-opt.clear { background: #f0f0f0; color: #666; }
+
+/* --- 信箱 (Letter) 容器 --- */
+.cp-letter-container {
+    padding: 30px 20px;
+    position: relative; /* 必须保留，作为连线的定位基准 */
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 50px; /* 增加卡片垂直间距，让连线稍微长一点，更好看 */
+    min-height: 100%;
+}
+
+/* ❌ 删除中间的垂直时间轴线，因为你说不需要中间有竖线 */
+.cp-letter-timeline-line {
+    display: none; 
+}
+
+/* --- 卡片样式 (侦探线索板/拍立得风格) --- */
+.cp-letter-card {
+    position: relative;
+    width: 46%; /* 左右交错 */
+    background: #fff;
+    /* 模仿纸张质感 */
+    padding: 15px 15px 25px 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
+    z-index: 1;
+    cursor: pointer;
+    transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    
+    /* 稍微加一点纸张纹理背景 */
+    background-image: linear-gradient(to bottom, #fafafa 0%, #fff 100%);
+    border: 1px solid #eee;
+}
+
+.cp-letter-card:active {
+    transform: scale(0.98) !important; /* 点击微缩 */
+}
+
+/* 左右交错布局 */
+.cp-letter-card.left {
+    align-self: flex-start;
+    transform: rotate(-3deg); /* 向左歪一点 */
+    margin-right: auto;
+}
+
+.cp-letter-card.right {
+    align-self: flex-end;
+    transform: rotate(2deg); /* 向右歪一点 */
+    margin-left: auto;
+}
+
+/* --- 大头针 (Pin) 效果 --- */
+.cp-letter-card::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #333; /* 黑色圆钉 */
+    box-shadow: 1px 2px 4px rgba(0,0,0,0.3);
+    z-index: 10;
+    top: -6px; /* 钉在卡片正上方中间 */
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.cp-lines-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* 让点击穿透画布，不影响点卡片 */
+    z-index: 0; /* 在卡片下面 */
+    overflow: visible;
+}
+
+/* 连线的样式 */
+.cp-connection-line {
+    stroke: #666;      /* 线条颜色：深灰，像棉线 */
+    stroke-width: 1.5px; /* 线条粗细 */
+    stroke-opacity: 0.6; /* 稍微透明一点，不抢眼 */
+    fill: none;
+    /* 如果想要虚线效果，可以加这句: stroke-dasharray: 5, 5; */
+}
+
+/* --- 卡片样式调整 --- */
+.cp-letter-card {
+    /* 保持原有的样式不变 */
+    position: relative;
+    width: 46%;
+    background: #fff;
+    padding: 15px 15px 25px 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
+    z-index: 2; /* 确保卡片在线条上面 */
+    cursor: pointer;
+    transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background-image: linear-gradient(to bottom, #fafafa 0%, #fff 100%);
+    border: 1px solid #eee;
+}
+
+/* 左右交错角度稍微大一点，增加不规则感 */
+.cp-letter-card.left {
+    align-self: flex-start;
+    transform: rotate(-3deg); 
+    margin-right: auto;
+}
+
+.cp-letter-card.right {
+    align-self: flex-end;
+    transform: rotate(3deg); 
+    margin-left: auto;
+}
+
+/* --- 大头针 (Pin) --- */
+.cp-letter-card::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #333;
+    box-shadow: 1px 2px 4px rgba(0,0,0,0.3);
+    z-index: 10;
+    top: -6px; /* 钉在卡片正上方中间 */
+    left: 50%;
+    transform: translateX(-50%);
+    /* 给这个钉子加个标记，方便JS找到它的位置 */
+    pointer-events: none;
+}
+
+/* ❌ 彻底删除之前的 ::after 连线代码，我们现在用 JS 画真线 */
+.cp-letter-card::after {
+    display: none;
+}
+
+
+/* --- 卡片内部排版 --- */
+
+/* 1. 第一行：数字 + 横线 */
+.cp-l-header-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.cp-l-num {
+    font-size: 24px;
+    font-weight: 700; /* 粗体 */
+    font-family: 'Times New Roman', serif; /* 衬线体更好看 */
+    color: #333;
+    line-height: 1;
+}
+
+/* 那个横线 */
+.cp-l-sep-line {
+    flex: 1; /* 占满剩余宽度 */
+    height: 1px;
+    background-color: #333; /* 黑线 */
+    opacity: 0.8;
+}
+
+/* 2. 第二行：标题 */
+.cp-l-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #000;
+    margin: 5px 0 10px 0;
+    line-height: 1.4;
+    text-align: left; /* 标题左对齐 */
+    
+    /* 最多显示两行标题，多了省略 */
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ❌ 隐藏正文预览 (核心要求) */
+.cp-l-preview {
+    display: none !important;
+}
+
+/* 3. 第三行：From 和 Date */
+.cp-l-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: #999;
+    font-family: serif; /* 衬线体 */
+    margin-top: auto; /* 推到底部 */
+}
+
+.cp-l-from {
+    font-style: italic;
+    color: #666;
+    font-weight: 600;
+}
+
+/* --- 写信弹窗样式 --- */
+.cp-letter-input-title {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+    font-size: 16px;
+    font-weight: 600;
+    outline: none;
+    background: transparent;
+    margin-bottom: 15px;
+}
+
+.cp-letter-input-area {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: #f9f9f9;
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 14px;
+    line-height: 1.6;
+    outline: none;
+    resize: none;
+}
+
+/* --- 读信全屏样式 (Paper View) --- */
+.cp-letter-paper-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(5px);
+    z-index: 6000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.cp-letter-paper-overlay.active { display: flex; opacity: 1; }
+
+.cp-letter-paper {
+    width: 90%;
+    max-width: 400px;
+    height: 85vh; /* 长信纸 */
+    background: #fffdf5; /* 米黄色纸张 */
+    border-radius: 2px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    padding: 30px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cp-letter-paper-overlay.active .cp-letter-paper { transform: translateY(0); }
+
+/* 纸张纹理 */
+.cp-paper-texture {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: linear-gradient(#e6e6e6 1px, transparent 1px);
+    background-size: 100% 30px; /* 行间距 */
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+.cp-paper-header {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Times New Roman', serif;
+    color: #999;
+    font-size: 12px;
+    margin-bottom: 20px;
+}
+
+.cp-paper-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #333;
+    text-align: center;
+    margin-bottom: 10px;
+    font-family: serif;
+}
+
+.cp-paper-line {
+    width: 40px;
+    height: 2px;
+    background: #333;
+    margin: 0 auto 20px auto;
+}
+
+.cp-paper-body {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 15px;
+    line-height: 30px; /* 对齐网格线 */
+    color: #444;
+    white-space: pre-wrap;
+    text-align: justify;
+    padding-bottom: 20px;
+    font-family: serif; /* 衬线体更有书信感 */
+}
+
+.cp-paper-footer {
+    text-align: right;
+    font-family: serif;
+    font-size: 14px;
+    color: #666;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+.cp-paper-close {
+    position: absolute;
+    top: 15px; right: 15px;
+    font-size: 20px;
+    color: #ccc;
+    cursor: pointer;
+}
+.cp-paper-close:hover { color: #333; }
+
+/* --- 极简液态菜单专用样式 --- */
+
+/* 1. 菜单容器：取消默认的白色大背景，改为透明布局容器 */
+.simple-glass-menu {
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* 上下两组按钮的间距 */
+    animation: popupScale 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 2. 按钮组容器 (上面两个按钮包在一起) */
+.sg-group {
+    display: flex;
+    flex-direction: column;
+    /* 液态玻璃核心 */
+    background: rgba(255, 255, 255, 0.75); 
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border-radius: 14px;
+    overflow: hidden;
+    /* 玻璃光泽边框 */
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* 3. 按钮通用样式 (纯文字包裹) */
+.sg-btn {
+    height: 56px; /* 按钮高度，方便点击 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #333; /* 默认黑色文字 */
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    /* 确保文字居中 */
+    text-align: center;
+}
+
+/* 点击时的反馈 (变深一点) */
+.sg-btn:active {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* 4. 分割线 (极细) */
+.sg-line {
+    height: 1px;
+    background: rgba(0, 0, 0, 0.1); /* 很淡的黑线 */
+    width: 100%;
+}
+
+/* 5. 危险操作 (解除关系) - 只有文字变红，没有其他花哨的 */
+.sg-btn.danger {
+    color: #ff3b30; 
+    font-weight: 600;
+}
+
+/* 6. 取消按钮 (独立的一块玻璃) */
+.sg-btn.cancel {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border-radius: 14px;
+    color: #007aff; /* 蓝色文字表示取消 */
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* 覆盖可能存在的旧样式干扰 */
+#couple-settings-modal .glass-popup-box {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    width: auto !important;
+}
+
+/* --- ★★★ 修复：情侣问答 (Questions) 缺失的样式 ★★★ --- */
+
+/* 1. 问答列表容器 */
+#cp-questions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding-bottom: 20px;
+}
+
+/* 2. 问题卡片主体 */
+.cp-qa-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s;
+    border: 1px solid rgba(0,0,0,0.02);
+}
+.cp-qa-card:active {
+    transform: scale(0.99);
+}
+
+/* 3. 问题标题 */
+.cp-qa-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+/* 4. 副标题 (标签、日期) */
+.cp-qa-sub {
+    font-size: 11px;
+    color: #999;
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+/* 5. 分割线 */
+.cp-qa-line {
+    width: 100%;
+    height: 1px;
+    background: #f5f5f5;
+    margin-bottom: 12px;
+}
+
+/* 6. 回答区域块 */
+.cp-qa-answer-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* 7. 回答行 (名字+内容) */
+.cp-qa-row {
+    display: flex;
+    align-items: flex-start;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* 名字样式 */
+.cp-qa-name {
+    font-weight: 700;
+    white-space: nowrap;
+    margin-right: 6px;
+    min-width: fit-content;
+}
+.cp-qa-name.is-me { color: #666; }    /* 我的名字颜色 */
+.cp-qa-name.is-char { color: #666; }     /* 对方名字颜色 */
+
+/* 内容样式 */
+.cp-qa-text {
+    color: #555;
+    word-break: break-all;
+    flex: 1;
+}
+
+/* 8. 按钮容器 */
+.cp-qa-btn-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 5px;
+}
+
+/* 9. 修改按钮 (小) */
+.cp-qa-action-btn {
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    background: #f7f7f7;
+    color: #888;
+    cursor: pointer;
+    border: 1px solid #eee;
+    transition: all 0.2s;
+}
+.cp-qa-action-btn:active {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.cp-qa-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    width: 100%;
+}
+
+/* 灰色输入框 */
+.cp-qa-inline-input {
+    flex: 1;
+    background: #f5f5f5; /* 灰色背景 */
+    border: 1px solid #eee;
+    border-radius: 30px; /* 圆角胶囊状 */
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #333;
+    outline: none;
+    font-family: inherit;
+    transition: background 0.2s;
+}
+
+.cp-qa-inline-input:focus {
+    background: #fff;
+    border-color: #ddd;
+}
+
+/* 发送按钮 */
+.cp-qa-inline-btn {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333; /* 黑色文字 */
+    padding: 6px 12px;
+    background: #e0e0e0;
+    border-radius: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+    border: none;
+}
+
+.cp-qa-inline-btn:active {
+    background: #d0d0d0;
+}
+
+/* --- 问答左滑删除样式 --- */
+
+/* 1. 外层包裹容器 (隐藏超出的删除按钮) */
+.cp-qa-swipe-container {
+    position: relative;
+    width: 100%;
+    height: auto;
+    overflow: hidden; /* 关键：隐藏右边的删除按钮 */
+    border-radius: 18px; /* 保持圆角 */
+    margin-bottom: 15px; /* 卡片间距 */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+}
+
+/* 2. 实际滑动的卡片层 */
+.cp-qa-card-slider {
+    position: relative;
+    z-index: 2; /* 在删除按钮上面 */
+    background: #ffffff;
+    width: 100%;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); /* 平滑回弹 */
+    /* 注意：要把原来 .cp-qa-card 的 margin 和 shadow 移到容器上，这里去掉 */
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+    border-radius: 18px; /* 保持圆角 */
+}
+
+/* 3. 红色删除按钮 (定位在右侧) */
+.cp-qa-delete-action {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 70px;
+    height: 100%;
+    background-color: #ff3b30;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    z-index: 1;
+    border-radius: 0 18px 18px 0;
+    opacity: 0; 
+    transition: opacity 0.2s ease;
+}
+
+/* --- 消息翻译功能样式 --- */
+
+/* 分割线 */
+.msg-trans-line {
+    width: 100%;
+    height: 1px;
+    background-color: rgba(0, 0, 0, 0.1); /* 淡淡的黑线 */
+    margin: 8px 0;
+    display: block;
+}
+
+/* 黑暗模式/深色气泡适配 (用户发的消息如果是深色背景) */
+.Miu-miu.user .content .msg-trans-line {
+    background-color: rgba(255, 255, 255, 0.2); /* 淡淡的白线 */
+}
+
+/* 翻译后的文字 */
+.msg-trans-text {
+    font-size: 12px; /* 比正文稍小 */
+    line-height: 1.4;
+    opacity: 0.85;   /* 稍微淡一点 */
+    font-weight: 400;
+}
+
+/* 1. 列表容器：清理多余的内边距 */
+.cp-mood-timeline {
+    padding: 20px 15px; /* 给左右留点空隙 */
+    padding-bottom: 50px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* 每条日记之间的间距 */
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* 2. 单条日记容器 */
+.mood-node {
+    display: flex;
+    flex-direction: column; /* 垂直排列：上面是时间，下面是卡片 */
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+/* 左右对齐逻辑 */
+.mood-node.left {
+    align-items: flex-start; /* 对方靠左 */
+}
+.mood-node.right {
+    align-items: flex-end;   /* 我靠右 */
+}
+
+/* 3. 新增：时间日期标签样式 */
+.mood-date-tag {
+    font-size: 11px;
+    color: #b0b0b0; /* 浅灰色，不抢眼 */
+    margin-bottom: 6px;
+    font-family: Arial, sans-serif;
+    padding: 0 4px; /* 稍微跟边缘有点距离 */
+}
+
+/* 4. 直角卡片样式 (保持你喜欢的直角风格) */
+.mood-unified-card {
+    background: #ffffff;
+    padding: 10px 14px;
+    
+    /* 直角 */
+    border-radius: 2px !important; 
+    
+    /* 纸条边框 */
+    border: 1px solid #e0e0e0 !important;
+    
+    /* 纸条投影 */
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.03) !important;
+    
+    display: inline-flex;
+    align-items: center; 
+    gap: 10px; 
+    max-width: 85%; /* 限制最大宽度，防止太长 */
+}
+
+/* 只有右侧(我)的消息，让贴图在右边，文字在左边 */
+.mood-node.right .mood-unified-card {
+    flex-direction: row-reverse; 
+}
+
+/* 贴图大小 */
+.mood-sticker-img {
+    width: 28px; 
+    height: 28px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+/* 文字样式：手写感/日记感 */
+.mood-text-content {
+    font-size: 14px;
+    color: #333;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    text-align: left;
+    /* 字体建议，如果不喜欢可以去掉这行 */
+    font-family: serif; 
+}
+
+/* 左侧 (Char) - 内容在左，往右对齐 */
+.mood-node.left .mood-wrapper-side {
+    justify-content: flex-end; 
+    padding-right: 20px; /* 给圆点留空隙 */
+}
+
+/* 右侧 (Me) - 内容在右，往左对齐 */
+.mood-node.right .mood-wrapper-side {
+    margin-left: 50%;
+    justify-content: flex-start;
+    padding-left: 20px; /* 给圆点留空隙 */
+}
+
+/* 5. 核心：长条形文字框 (自适应高度) */
+.mood-unified-card {
+    background: #ffffff;
+    
+    /* 上下内边距，左右内边距 */
+    padding: 8px 12px; 
+    
+    border-radius: 8px; /* 小圆角 */
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    
+    display: inline-flex;
+    align-items: center; /* 图标和文字垂直居中 */
+    gap: 8px; 
+    
+    position: relative;
+    z-index: 5;
+    
+    /* ★★★ 核心修复：允许高度自适应，取消高度限制 ★★★ */
+    height: auto; 
+    min-height: 36px;
+    max-width: 100%; /* 防止撑破屏幕 */
+}
+
+/* 右侧(我)的消息，贴图在右，文字在左 */
+.mood-node.right .mood-unified-card {
+    flex-direction: row-reverse; 
+}
+
+/* 6. 内容元素微调 */
+.mood-sticker-img {
+    width: 32px; 
+    height: 32px;
+    object-fit: contain;
+    flex-shrink: 0; /* 防止贴图被挤扁 */
+}
+
+.mood-text-content {
+    font-size: 13px;
+    color: #444;
+    font-weight: 500;
+    
+    /* ★★★ 核心修复：允许换行，禁止省略号 ★★★ */
+    white-space: pre-wrap;  /* 保留换行符，自动换行 */
+    word-break: break-all;  /* 长单词强制换行 */
+    overflow: visible;      /* 显示所有内容 */
+    line-height: 1.5;       /* 增加行高，多行时更好看 */
+    max-width: 130px;       /* 限制文字最大宽度，强制多行 */
+    text-align: left;
+}
+
+/* 时间戳：放在卡片上方 */
+.mood-time-label {
+    position: absolute;
+    top: -18px; 
+    font-size: 10px;
+    color: #ccc;
+    font-family: Arial, sans-serif;
+    white-space: nowrap;
+}
+
+/* 时间对齐微调 */
+.mood-node.left .mood-time-label { right: 20px; }
+.mood-node.right .mood-time-label { left: 20px; }
+
+/* 7. ★★★ 恢复输入框样式 ★★★ */
+/* 强制覆盖之前任何可能导致居中的样式 */
+.cp-mood-input {
+    width: 100%; 
+    height: 100px;
+    background: #f7f7f7 !important; 
+    border: 1px solid #eee !important;
+    border-radius: 12px; 
+    padding: 12px !important;
+    font-size: 14px !important; 
+    color: #333 !important;
+    outline: none; 
+    resize: none;
+    text-align: left !important; /* 核心：左对齐 */
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+/* 保持弹窗选图网格正常 */
+.cp-mood-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+.cp-mood-option {
+    display: flex; flex-direction: column; align-items: center;
+}
+.cp-mood-option img { width: 45px; height: 45px; }

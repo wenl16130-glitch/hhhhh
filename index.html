@@ -17,6 +17,7 @@
     <!-- 引入样式文件 -->
      <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
+    <script src="couple-space.js"></script>
 </head>
 <body>
     <div class="phone-frame" id="phoneFrame">
@@ -104,7 +105,7 @@
         <!-- Dock -->
         <div class="dock-capsule">
             <div class="dock-btn" onclick="openApp('Page 1')"><img id="dockIcon1" src="https://placehold.co/40/white/ccc?text=🤍" alt="Btn1"></div>
-            <div class="dock-btn" onclick="openApp('Page 2')"><img id="dockIcon2" src="https://placehold.co/40/white/ccc?text=🍷" alt="Btn2"></div>
+            <div class="dock-btn" onclick="openCoupleSpace()"><img id="dockIcon2" src="https://placehold.co/40/white/ccc?text=🍷" alt="Btn2"></div>
             <div class="dock-btn" onclick="openApp('Page 3')"><img id="dockIcon3" src="https://placehold.co/40/white/ccc?text=🐰" alt="Btn3"></div>
             <div class="dock-btn" onclick="openApp('Page 4')"><img id="dockIcon4" src="https://placehold.co/40/white/ccc?text=🐱" alt="Btn4"></div>
         </div>
@@ -328,7 +329,6 @@
         <span>Me</span>
     </div>
 </nav>
-
             <div class="generic-page" id="genericAppPage" style="display:none;"><h2 id="appTitle">APP NAME</h2></div>
 
             <div class="chat-room" id="chatRoom">
@@ -462,17 +462,24 @@
         </div>
     </div>
 </div>
-                    <!-- [合并修改] 角色设定卡片 -->
-                    <div class="settings-card-box">
-                        <div class="settings-label">对方人设</div>
-                        <textarea class="settings-textarea" id="charPersona" placeholder="请输入对方人设..."></textarea>
-                        
-                        <div class="settings-spacer"></div>
 
-                        <div class="settings-label">我方人设</div>
-                        <textarea class="settings-textarea" id="userPersona" placeholder="请输入我方人设..."></textarea>
-                    </div>
+<div class="settings-card-box">
+    <!-- 1. 对方人设 -->
+    <div class="settings-label">对方人设</div>
+    <textarea class="settings-textarea" id="charPersona" placeholder="请输入对方人设..."></textarea>
+    
+    <div class="settings-spacer"></div>
 
+    <!-- 2. 我方人设 -->
+    <div class="settings-label">我方人设</div>
+    <textarea class="settings-textarea" id="userPersona" placeholder="请输入我方人设..."></textarea>
+
+    <div style="border-top: 1px dashed #eee; margin: 15px 0;"></div>
+
+    <!-- 3. MiniMax Voice ID-->
+    <div class="settings-label">MiniMax Voice ID</div>
+    <input type="text" class="settings-textarea" id="charVoiceId" placeholder="Voice ID" style="height: 40px; min-height: 40px; padding-top: 10px;">
+</div>
                     <div class="settings-card-box">
                         <div class="settings-label">记忆与总结设置</div>
 
@@ -630,7 +637,101 @@
         <div class="api-preset-del-btn" onclick="deleteProfileFromSelect()"></div>
         </div>
     </div>
-</div> 
+    <div class="api-divider" style="height:1px; background:#f0f0f0; margin: 20px 0 15px 0;"></div>
+    <!-- ★★★ 新增：自动翻译开关 ★★★ -->
+<div class="settings-card-box" style="margin-top: 15px;">
+    <div class="mem-row" style="margin-bottom: 0;">
+        <span class="settings-label" style="margin-left:0; font-size:14px; color:#333;">自动翻译</span>
+        <!-- 翻译开关 -->
+        <div class="wb-toggle" id="autoTranslateToggle" onclick="toggleAutoTranslate()">
+            <div class="wb-toggle-knob"></div>
+        </div>
+    </div>
+    <div style="font-size:11px; color:#999; margin-top:8px;">
+        开启后，如果对方发送非中文消息，将自动翻译并附在气泡下方。
+    </div>
+</div>
+            <!-- ★★★ 后台独立活动设置模块 (最终美化版) ★★★ -->
+            <div class="settings-card-box">
+                <div class="mem-row" style="margin-bottom: 0;">
+                    <span class="settings-label" style="margin-left:0; font-size:14px; color:#333;">后台独立活动</span>
+                    <!-- 全局总开关 -->
+                    <div class="wb-toggle" id="autoActivityToggle" onclick="toggleAutoActivityGlobal()">
+                        <div class="wb-toggle-knob"></div>
+                    </div>
+                </div>
+
+                <!-- 频率滑块与角色列表 (默认隐藏) -->
+                <div id="autoFreqPanel" style="display:none; flex-direction:column; gap:15px; margin-top:15px; padding-top:15px; border-top:1px dashed #eee;">
+                    
+                    <!-- 1. 频率滑块区域 -->
+                    <div>
+                        <div class="font-slider-header" style="padding:0; margin-bottom:10px;">
+                            <span class="font-slider-label">活动频率</span>
+                            <!-- 颜色改为深灰/黑 -->
+                            <span id="autoFreqDisplay" class="font-slider-value" style="color:#333;">中频 (3h)</span>
+                        </div>
+                        <!-- ★★★ 核心修改：width:100% 变长，accent-color:#333 去掉蓝色 ★★★ -->
+                        <input type="range" id="autoFreqSlider" min="0" max="2" step="1" value="1" 
+                               oninput="updateAutoFreqDisplay(this.value)"
+                               style="width: 100%; accent-color: #333; cursor: pointer; margin: 5px 0;">
+                    </div>
+                    
+                    <!-- 2. 角色选择 (清爽版：无图标，极淡背景) -->
+                    <div class="preset-manager-toggle" onclick="toggleAutoCharList()" 
+                         style="margin-top:5px; background:#FAFAFA; border:1px solid #f0f0f0; justify-content: space-between; padding: 12px;">
+                        <span style="color:#666; font-weight:500;">选择参与角色</span>
+                        <i class="fas fa-chevron-down" id="autoCharArrow" style="color:#ccc; font-size:12px;"></i>
+                    </div>
+                    
+                    <!-- 角色列表容器 -->
+                    <div class="preset-manager-body" id="autoCharListBody" style="background:#fff; border:1px solid #f0f0f0; border-top:none; margin-top: -5px; border-radius: 0 0 12px 12px;">
+                        <!-- JS 自动填充角色 -->
+                    </div>
+                    
+                    <!-- 保存按钮 -->
+                    <div class="plump-btn" onclick="saveAutoSettings()" style="margin-top:10px; background:#000; color:#fff; border:none; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                        保存活动配置
+                    </div>
+                </div>
+            </div>
+            
+                    <!-- ★★★ MiniMax 接入设置 (新增) ★★★ -->
+            <div class="settings-card-box" style="margin-top: 20px;">
+                <div class="settings-label" style="margin-bottom:10px; margin-left:0;">MiniMax 配置</div>
+                
+                <div class="api-input-group">
+                    <label>Group ID (账户ID)</label>
+                    <input type="text" class="api-input" id="minimaxGroupId" placeholder="例如：181000000000000">
+                </div>
+
+                <div class="api-input-group">
+                    <label>API Key</label>
+                    <input type="password" class="api-input" id="minimaxApiKey" placeholder="eyJh...">
+                </div>
+
+                <div class="api-input-group">
+                    <label>Model (模型名称)</label>
+                    <input type="text" class="api-input" id="minimaxModel" placeholder="例如：abab6.5s-chat">
+                </div>
+
+                <div class="api-input-group">
+                    <div class="flex-between" style="display:flex; justify-content:space-between; width:100%;">
+                        <label>Temperature (温度)</label>
+                        <span id="minimaxTempDisplay" style="font-size:14px; color:#333; font-weight:bold;">0.9</span>
+                    </div>
+                    <!-- 复用你的 apiTemp 样式 -->
+                    <input type="range" id="minimaxTemp" min="0.1" max="1.0" step="0.1" value="0.9" 
+                           style="width: 100%; accent-color: #333; cursor: pointer; margin: 15px 0; appearance: none; height: 6px; background: #f0f0f0; border-radius: 10px;"
+                           oninput="document.getElementById('minimaxTempDisplay').innerText = this.value">
+                </div>
+
+                <div class="plump-btn" onclick="saveData(); alert('MiniMax 配置已保存！')" style="margin-top:10px; background:#fff; color:#333; border:1px solid #ddd; box-shadow:none;">
+                    保存设置
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
   <!-- Font Settings (Fix: Moved out) -->
             <div class="api-settings-page" id="fontSettingsPage">
@@ -1284,6 +1385,241 @@
         
         <!-- 取消 -->
         <div class="modal-btn cancel" style="margin-top:5px;" onclick="closeDataModal()">取消</div>
+    </div>
+</div>
+</div>
+<!-- ★★★ 情侣空间液态弹窗 ★★★ -->
+<div id="couple-space-overlay">
+    <!-- 1. 列表视图 (选人界面 - 保持小窗口) -->
+    <div id="couple-list-view" class="couple-glass-box">
+        <div class="couple-header">
+            <div class="couple-header-title">Lovers Space</div>
+            <div class="couple-close-btn" onclick="closeCoupleSpace()">×</div>
+        </div>
+        <div class="couple-scroll-area" id="couple-list-container">
+            <!-- JS 自动填充 -->
+        </div>
+    </div>
+
+    <!-- 2. ★★★ 新增：情侣空间详情视图 (全屏模式) ★★★ -->
+    <div id="couple-dashboard-view" style="display: none;">
+        <!-- 动态背景层 (添加了 onclick) -->
+        <div id="cp-bg-layer" onclick="showMenu(event, 'coupleBg')"></div>
+
+        <!-- 顶部导航条 -->
+        <div class="cp-nav-header">
+            <i class="fas fa-chevron-left" onclick="backToCoupleList()" style="font-size: 20px;"></i>
+            <!-- 设置按钮 (保留图标，去掉了之前的 toggle 功能，暂时留空) -->
+            <i class="fas fa-cog" onclick="openCoupleSettingsMenu()"></i>
+    </div>
+
+        <!-- 顶部纪念日卡片 (添加了 ID 和 onclick) -->
+        <div class="cp-top-card" id="cpTopCard" onclick="showMenu(event, 'coupleCard')">
+            <!-- 隐藏的日期选择器 -->
+            <input type="date" id="cp-date-picker" style="display: none;" onchange="updateCoupleDate(this)">
+            
+            <div class="cp-avatar-wrap">
+                <img src="" id="cp-char-avatar" class="cp-head-img">
+            </div>
+            
+            <!-- 阻止冒泡，防止点击文字时误触换背景 -->
+            <div class="cp-days-info" onclick="event.stopPropagation(); triggerCoupleDatePicker()">
+                <div class="cp-days-label">在一起</div>
+                <div class="cp-days-count"><span id="cp-days-num">1</span> Days</div>
+            </div>
+
+            <div class="cp-avatar-wrap">
+                <img src="" id="cp-user-avatar" class="cp-head-img">
+            </div>
+        </div>
+
+        <!-- 下面的功能栏和内容区域保持不变，不需要动 -->
+        <div class="cp-menu-bar">
+            <div class="cp-menu-item active" onclick="switchCoupleTab('moments')">
+                <div class="cp-menu-icon"><i class="fas fa-star"></i></div>
+            </div>
+            <div class="cp-menu-item" onclick="switchCoupleTab('album')">
+                <div class="cp-menu-icon"><i class="fas fa-images"></i></div>
+            </div>
+            <div class="cp-menu-item" onclick="switchCoupleTab('period')">
+                <div class="cp-menu-icon"><i class="fas fa-heartbeat"></i></div>
+            </div>
+            <div class="cp-menu-item" onclick="switchCoupleTab('letter')">
+                <div class="cp-menu-icon"><i class="fas fa-envelope"></i></div>
+            </div>
+             <div class="cp-menu-item" onclick="switchCoupleTab('questions')">
+                <div class="cp-menu-icon"><i class="fas fa-comments"></i></div>
+            </div>
+            <div class="cp-menu-item" onclick="switchCoupleTab('mood')">
+        <div class="cp-menu-icon"><i class="far fa-smile"></i></div>
+    </div>
+</div>
+
+        <!-- 内容区域 -->
+        <div class="cp-content-container">
+            <div id="cp-tab-moments" class="cp-tab-content active">
+                <div id="cp-moments-list" class="cp-feed-list"></div>
+                <div style="height: 80px;"></div>
+            </div>
+            <div id="cp-tab-album" class="cp-tab-content" style="display:none;">
+                <div id="cp-album-grid" class="cp-album-grid"></div>
+                <div style="height: 80px;"></div>
+            </div>
+            <input type="file" id="cp-album-input" accept="image/*" multiple style="display:none;" onchange="handleCpAlbumSelect(this)">
+            <div id="cp-tab-period" class="cp-tab-content" style="display:none; height:100%;">
+                <div class="cp-calendar-header">
+                    <div class="cp-cal-month" id="cpCalTitle">2025年 10月</div>
+                    <div class="cp-cal-controls">
+                        <i class="fas fa-chevron-left" onclick="changeCpMonth(-1)"></i>
+                        <i class="fas fa-chevron-right" onclick="changeCpMonth(1)"></i>
+                    </div>
+                </div>
+                <!-- 星期抬头 -->
+                <div class="cp-week-row">
+                    <div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div><div>周日</div>
+                </div>
+                <!-- 日历格子 -->
+                <div class="cp-calendar-grid" id="cpCalendarGrid"></div>
+                
+                <!-- 底部图例 -->
+                <div class="cp-legend-row">
+                    <div class="cp-legend-item"><span class="cp-dot l-period"></span>经期</div>
+                    <div class="cp-legend-item"><span class="cp-dot l-predict"></span>预测</div>
+                    <div class="cp-legend-item"><span class="cp-dot l-fertile"></span>排卵期</div>
+                    <div class="cp-legend-item"><span class="cp-dot l-ovulation"></span>排卵日</div>
+                </div>
+            </div>
+            <!-- 1. 信箱页面 -->
+<div id="cp-tab-letter" class="cp-tab-content" style="display:none; position: relative; min-height: 100%;">
+    <div class="cp-letter-timeline-line"></div>
+    <!-- 信件列表容器 -->
+    <div id="cp-letter-list" class="cp-letter-container"></div>
+</div>
+
+<!-- 2. 问答页面 -->
+<div id="cp-tab-questions" class="cp-tab-content" style="display:none;">
+    <div id="cp-questions-list" style="padding-bottom: 80px;"></div>
+</div>
+<!-- 心情日记页面 -->
+<div id="cp-tab-mood" class="cp-tab-content" style="display:none; height:100%;">
+    <div id="cp-mood-timeline" class="cp-mood-timeline">
+        <!-- JS 会在这里生成节点 -->
+    </div>
+    <div style="height: 100px;"></div> <!-- 底部垫高 -->
+</div>
+        <!-- 右下角悬浮发布按钮 -->
+        <div class="cp-fab-btn" onclick="onCpFabClick()">
+            <i class="fas fa-plus"></i>
+        </div>
+
+        <!-- 发布/评论 输入弹窗 -->
+        <div class="cp-input-overlay" id="cpInputOverlay">
+            <div class="cp-input-box">
+                <div class="cp-input-title" id="cpInputTitle">发布动态</div>
+                <textarea id="cp-input-text" placeholder="写下这一刻的甜蜜..."></textarea>
+                <div class="cp-btn-row">
+                    <div class="cp-btn cancel" onclick="closeCpPostModal()">取消</div>
+                    <div class="cp-btn confirm" onclick="submitCpPost()">发送</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="cp-period-modal" class="glass-popup-overlay">
+    <div class="glass-popup-box" style="width: 260px;">
+        <div class="glass-popup-title" id="cpPeriodModalTitle">标记状态</div>
+        <div class="cp-period-options">
+            <div class="cp-p-opt period" onclick="setPeriodStatus('period')">姨妈来了</div>
+            <div class="cp-p-opt predict" onclick="setPeriodStatus('predict')">预测经期</div>
+            <div class="cp-p-opt fertile" onclick="setPeriodStatus('fertile')">排卵期</div>
+            <div class="cp-p-opt ovulation" onclick="setPeriodStatus('ovulation')">排卵日</div>
+            <div class="cp-p-opt clear" onclick="setPeriodStatus(null)">清除状态</div>
+        </div>
+        <div class="glass-btn-row">
+            <button class="glass-btn glass-btn-cancel" onclick="closePeriodModal()">取消</button>
+        </div>
+    </div>
+</div>
+<!-- 写信弹窗 (User Write) -->
+<div id="cp-letter-write-modal" class="glass-popup-overlay">
+    <div class="glass-popup-box" style="width: 90%; max-width: 400px; height: 80vh; display:flex; flex-direction:column;">
+        <div class="glass-popup-title">写一封信</div>
+        
+        <input type="text" id="letter-title-input" class="cp-letter-input-title" placeholder="信的标题">
+        
+        <textarea id="letter-content-input" class="cp-letter-input-area" placeholder="在这里写下你的心里话..."></textarea>
+        
+        <div class="glass-btn-row">
+            <div class="glass-btn glass-btn-cancel" onclick="saveLetterDraft()">存草稿</div>
+            <div class="glass-btn glass-btn-confirm" onclick="submitUserLetter()">寄出</div>
+        </div>
+    </div>
+</div>
+</div>
+<!-- ★★★ 极简液态玻璃设置菜单 (Pure Glass) ★★★ -->
+<div id="couple-settings-modal" class="glass-popup-overlay">
+    <!-- 这里的 simple-glass-menu 是专门的新样式 -->
+    <div class="simple-glass-menu">
+        
+        <!-- 按钮组：清空 + 解除 -->
+        <div class="sg-group">
+            <div class="sg-btn" onclick="cpActionClearData()">清空恋爱记录</div>
+            <div class="sg-line"></div>
+            <div class="sg-btn danger" onclick="cpActionBreakUp()">解除情侣关系</div>
+        </div>
+
+        <!-- 独立的取消按钮 -->
+        <div class="sg-btn cancel" onclick="closeCoupleSettingsMenu()">取消</div>
+        
+    </div>
+</div>
+<!-- 读信弹窗 (Read Letter - 纸质质感) -->
+<div id="cp-letter-read-modal" class="cp-letter-paper-overlay" onclick="closeLetterReadModal()">
+    <div class="cp-letter-paper" onclick="event.stopPropagation()">
+        <div class="cp-paper-texture"></div>
+        <div class="cp-paper-header">
+            <span id="read-letter-no">No.01</span>
+            <span id="read-letter-date">2023.10.24</span>
+        </div>
+        <div class="cp-paper-title" id="read-letter-title">关于我们的初遇</div>
+        <div class="cp-paper-line"></div>
+        <div class="cp-paper-body" id="read-letter-content">
+            <!-- 信件内容 -->
+        </div>
+        <div class="cp-paper-footer">
+            From: <span id="read-letter-from">Char</span>
+        </div>
+        <div class="cp-paper-close" onclick="closeLetterReadModal()">
+            <i class="fas fa-times"></i>
+        </div>
+    </div>
+</div>
+</div>
+<!-- 心情发布弹窗 (Mood Modal) -->
+<div id="cp-mood-modal" class="glass-popup-overlay">
+    <div class="glass-popup-box" style="width: 85%; padding: 25px 20px;">
+        
+        <!-- 步骤1：选图 -->
+        <div id="mood-step-1">
+            <div style="text-align:center;font-weight:600;color:#333;margin-bottom:15px;">今日心情怎么样？</div>
+            <div id="cpMoodGrid" class="cp-mood-grid">
+                <!-- JS 填充 -->
+            </div>
+            <div class="glass-btn-row" style="margin-top:20px;">
+                <div class="glass-btn glass-btn-cancel" onclick="closeMoodModal()">取消</div>
+            </div>
+        </div>
+
+        <!-- 步骤2：写字 -->
+        <div id="mood-step-2" style="display:none; flex-direction:column; align-items:center;">
+            <img id="mood-preview-img" src="" style="width:60px; height:60px; object-fit:contain; margin-bottom:15px;">
+            <textarea id="mood-input-text" placeholder="写下此刻的心情..." class="cp-mood-input"></textarea>
+            
+            <div class="glass-btn-row" style="margin-top:15px; width:100%;">
+                <div class="glass-btn glass-btn-cancel" onclick="backToMoodStep1()">重选</div>
+                <div class="glass-btn glass-btn-confirm" onclick="submitMood()">确定</div>
+            </div>
+        </div>
+
     </div>
 </div>
 </body>
